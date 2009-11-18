@@ -865,9 +865,9 @@ int main(int argc, char ** argv) {
     
   std::vector<int> pathFilterModule ; 
 
-  std::vector< std::pair<int,int> > slowEventSummaryVector ; 
-  std::vector< std::pair<int,int> > slowPathSummaryVector ; 
-  std::vector< std::pair<int,int> > slowModuleSummaryVector ; 
+  std::vector< std::pair<unsigned int,unsigned int> > slowEventSummaryVector ; 
+  std::vector< std::pair<unsigned int,unsigned int> > slowPathSummaryVector ; 
+  std::vector< std::pair<unsigned int,unsigned int> > slowModuleSummaryVector ; 
   
   //--- One loop through all events ---//
   bool init = false ; int nSkips = 0 ; 
@@ -1298,7 +1298,8 @@ int main(int argc, char ** argv) {
 
     // Needed to get run/event numbers
     TBEvtAux->GetEntry(ievt) ;
-    std::pair<int,int> eventInfo ;
+    //std::pair<int,int> eventInfo ;
+    std::pair<unsigned int,unsigned int> eventInfo ;
     eventInfo.first  = EvtAuxWrapper->id().run() ; 
     eventInfo.second = EvtAuxWrapper->id().event() ;
       
