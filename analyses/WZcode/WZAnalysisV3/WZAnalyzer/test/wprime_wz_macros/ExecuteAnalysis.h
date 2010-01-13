@@ -75,11 +75,14 @@ const float cutWElectron_pt = 20;
 const float cutWElCombRelIso = 0.1;
 
 //const float NOCUT = numeric_limits<float>::max();
+//just make a big number for now
+const float NOCUT = 99999999;
+
 
 // Cut arrays are for {barrel, endcap}
 const float cutDeltaEtaIn[]  = {0.005, 0.007};
 const float cutDeltaPhiIn[]  = {0.040, 0.040};
-//const float cutSigmaEtaEta[] = {0.011, NOCUT};
+const float cutSigmaEtaEta[] = {0.011, NOCUT};
 const float cutEOverP[]      = {0.760, 0.680};
 const float cutHOverE[]      = {0.016, 0.025};
 const float cutCalRelIso[]   = {0.100, 0.160};
