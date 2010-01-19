@@ -1,3 +1,11 @@
+//---------------------------------------------
+// Author: Edgar Carrera
+// 2010-01-13
+// This macro will be used for analyzing
+// Wprime -> WZ -> lllnu events
+// It works on an root-uple of events with
+// variables created by the "official" CMS WZ code
+//---------------------------------------------
 #ifndef _ExecuteAnalysis_h_
 #define _ExecuteAnalysis_h_
 
@@ -5,6 +13,7 @@
 #include <math.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include "TFile.h"
 #include "TTree.h"
@@ -18,6 +27,9 @@
 //gROOT->Reset();
 
 using namespace std;
+
+
+
 
 // ++++++++++++++data structure to accumulate info about the file
 struct InputFile{
@@ -34,9 +46,8 @@ struct InputFile{
   }
 };
 
-// +++++++++++++++++++location of data files
+// +++++++++++++++++++location of data files and samples info
 string top_level_dir = "/localdata/ecarrera/analyses/wprime_to_wz/root_uples/";
-
 
 // +++++++++++++++++++Variables to store Branch Addresses:
 Int_t           W_flavor;
@@ -51,8 +62,12 @@ const bool debugme = false; //print stuff if active
 
 
 // +++++++++++++++++++ Histogram Definitions
-const int Num_histo_sets = 3;
+const int Num_histo_sets = 3; //matches the number of cuts
 TH1F * hWZInvMass[Num_histo_sets];
+
+
+// +++++++++++++++++++General Cut values
+const int cutMaxNumZs = 1;
 
 
 
@@ -93,6 +108,34 @@ const float cutTrackRelIso[] = {0.100, 0.100};
 const float minSeparation = 0.1;
 
 
+// +++++++++++++++++++ Declare the methods that we use:
+void RecruitOrderedFiles(vector<InputFile> & files, const int& Nfiles,
+                         const int& filenum_low, const int& filenum_step,
+                         const string& mask1,
+                         const string& mask2, const string& file_desc);
+string convertIntToStr(int number);
+void getEff(float & eff, float & deff, float Num, float Denom);
+double deltaPhi(double phi1, double phi2);
+void Declare_Histos();
+double deltaR(double eta1, double phi1, double eta2, double phi2);
+int Check_Files(unsigned Nfiles, vector<InputFile> & files);
+void Load_Input_Files(string file_desc,vector<InputFile> & files,float lumiPb);
+int Load_Cross_Sections(vector<InputFile> & wzjj_files,
+                        vector<InputFile> & wprime400_files);
+void Set_Branch_Addresses(TTree* WZtree);
+void Fill_Histos(int index, float weight);
+void saveHistos(TFile * fout, string dir);
+void printSummary(ofstream & out, const string& dir,
+                  const float& Nexp_evt, float Nexp_evt_cut[]);
+void Tabulate_Me(int Num_surv_cut[], int& cut_index,const float& weight);
+void Get_Distributions(vector<InputFile>& files,TFile *fout, 
+                       string dir, ofstream & out);
+void ExecuteAnalysis();
+
+//methods for the cuts
+bool PassTriggers_Cut();
+bool HasValidWandZ_Cut();
+bool ExeedMaxNumberOfZs_Cut(const int& max_num_Zs);
 
 
 #endif//#define _ExecuteAnalysis_h_
