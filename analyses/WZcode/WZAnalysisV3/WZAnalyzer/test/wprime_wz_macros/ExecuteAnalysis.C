@@ -11,6 +11,8 @@
 #define ExecuteAnalysis_cxx
 #include <ExecuteAnalysis.h>
 
+
+
 //--------------------------------------------------------------
 void getEff(float & eff, float & deff, float Num, float Denom)
 {
@@ -43,6 +45,13 @@ double deltaPhi(double phi1, double phi2)
   return (phi <= PI) ? phi : TWOPI - phi;
 }
 
+//--------------------------------------------------------------
+double deltaEta(double eta1, double eta2)
+{
+//--------------------------------------------------------------
+    double eta = fabs(eta1 - eta2);
+    return eta;
+}
 
 //--------------------------------------------------------------
 void Declare_Histos()
@@ -58,8 +67,31 @@ void Declare_Histos()
   hWZInvMass[0] = new TH1F("hWZInvMass_hlt","Reconstructed WZ Invariant Mass (hlt);m_{WZ} (GeV);",WZbin,WZinvMin,WZinvMax);
   hWZInvMass[1] = new TH1F("hWZInvMass_flavor","Reconstructed WZ Invariant Mass (flavor);m_{WZ} (GeV);",WZbin,WZinvMin,WZinvMax);
   hWZInvMass[2] = new TH1F("hWZInvMass_numZs","Reconstructed WZ Invariant Mass (numZs);m_{WZ} (GeV);",WZbin,WZinvMin,WZinvMax);
+  hWZInvMass[3] = new TH1F("hWZInvMass_fwdjets","Reconstructed WZ Invariant Mass (fwdjets);m_{WZ} (GeV);",WZbin,WZinvMin,WZinvMax);
+
+
+  //Jet Multiplicity Histos
+  float jmMin = 0.;
+  float jmMax = 15.;
+  int jmbin = int(jmMax);
+  hJetMult[0] = new TH1F("hJetMult_hlt","Jet Multiplicity (hlt);Num of Jets;",jmbin,jmMin,jmMax);
+  hJetMult[1] = new TH1F("hJetMult_flavor","Jet Multiplicity (flavor);Num of Jets;",jmbin,jmMin,jmMax);
+  hJetMult[2] = new TH1F("hJetMult_numZs","Jet Multiplicity (numZs);Num of Jets;",jmbin,jmMin,jmMax);
+  hJetMult[3] = new TH1F("hJetMult_fwdjets","Jet Multiplicity (fwdjets);Num of Jets;",jmbin,jmMin,jmMax);
+
+
+  //DeltaEta between jets
+  float jdetaMin = 0;
+  float jdetaMax = 10.;
+  int jdetabin = 50;
+  hJetsDeltaEta[0] = new TH1F("hJetsDeltaEta_hlt","Jets Delta Eta (hlt);|#Delta#eta_{jj}| (rad);",jdetabin,jdetaMin,jdetaMax);
+  hJetsDeltaEta[1] = new TH1F("hJetsDeltaEta_flavor","Jets Delta Eta (flavor);|#Delta#eta_{jj}| (rad);",jdetabin,jdetaMin,jdetaMax);
+  hJetsDeltaEta[2] = new TH1F("hJetsDeltaEta_numZs","Jets Delta Eta (numZs);|#Delta#eta_{jj}| (rad);",jdetabin,jdetaMin,jdetaMax);
+  hJetsDeltaEta[3] = new TH1F("hJetsDeltaEta_fwdjets","Jets Delta Eta (fwdjets);|#Delta#eta_{jj}| (rad);",jdetabin,jdetaMin,jdetaMax);
   
 }//Declare_Histos
+
+
 
 
 //Just a function to calculate DeltaR
@@ -97,10 +129,13 @@ int Check_Files(unsigned Nfiles, vector<InputFile> & files)
 
 //Recruit files that are numbered from a given sample
 //----------------------------------------------------------
-void RecruitOrderedFiles(vector<InputFile> & files, const int& Nfiles,
-                         const int& filenum_low, const int& filenum_step,
+void RecruitOrderedFiles(vector<InputFile> & files, 
+                         const int& Nfiles,
+                         const int& filenum_low, 
+                         const int& filenum_step,
                          const string& mask1,
-                         const string& mask2, const string& file_desc)
+                         const string& mask2, 
+                         const string& file_desc)
 {
 //-----------------------------------------------------------
 
@@ -110,12 +145,23 @@ void RecruitOrderedFiles(vector<InputFile> & files, const int& Nfiles,
         return;
     }
 
-    int filenum = filenum_low;
-    for(int i = 0; i != Nfiles; ++i){
-        filenum = filenum_low + i*filenum_step;
-        files[i].pathname = top_level_dir + mask1 + convertIntToStr(filenum) + mask2;
-        files[i].description = file_desc;
+    if(Nfiles > 1){
+        int filenum = filenum_low;
+        for(int i = 0; i != Nfiles; ++i){
+            filenum = filenum_low + i*filenum_step;
+            files[i].pathname = top_level_dir + mask1 + 
+                convertIntToStr(filenum) + mask2;
+            files[i].description = file_desc;
+        }
     }
+    else if (Nfiles == 1){
+        files[0].pathname = top_level_dir + mask1;
+        files[0].description = file_desc;
+    }
+    else {cout<<"Something went wrong with the files. Quiting..."
+              <<endl; abort();}
+    
+
 
 
 }// --RecruitOrderedFiles
@@ -156,24 +202,18 @@ void Load_Input_Files(string file_desc,
   //recruit the files. 
   int Nfiles = -1;
   if (!strcmp(file_desc.c_str(),"wzjj")){
-          Nfiles = 20;
-          const string mask1 = "WZjj_500event_";
-          const string mask2 = "_outputTree.root";
-          const int filenum_low = 201;
-          const int filenum_step = 1;
-          RecruitOrderedFiles(files,Nfiles,filenum_low,filenum_step,
-                              mask1,mask2,file_desc);
+          Nfiles = 1;
+          const string filename = "WZjj_mergedOutputTree.root";
+          RecruitOrderedFiles(files,Nfiles,0,0,
+                              filename,"",file_desc);
   }
   else if (!strcmp(file_desc.c_str(),"wprime400")){
-          Nfiles = 20;
-          const string mask1 = "Wprime400_500event_";
-          const string mask2 = "_outputTree.root";
-          const int filenum_low = 101;
-          const int filenum_step = 1;
-          RecruitOrderedFiles(files,Nfiles,filenum_low,filenum_step,
-                              mask1,mask2,file_desc);
+          Nfiles = 1;
+          const string filename = "Wprime400_mergedOutputTree.root";
+          RecruitOrderedFiles(files,Nfiles,0,0,
+                              filename,"",file_desc);
   }
-  else cout<<"No sample were found with the name "<<file_desc<<endl;
+  else cout<<"No samples were found with the name "<<file_desc<<endl;
 
   
   
@@ -236,21 +276,21 @@ int Load_Cross_Sections(vector<InputFile> & wzjj_files,
 
   //PYTHIA cross-section (pb)
 
-  //qcd_files.push_back(InputFile(590000  , 450000)); // 100_150
-  //qcd_files.push_back(InputFile( 83000  , 425000)); // 150_200
-  //qcd_files.push_back(InputFile( 24000  , 440000)); // 200_300
-  //qcd_files.push_back(InputFile(  3000  , 395000)); // 300_400
-  //qcd_files.push_back(InputFile(   730  , 135000)); // 400_600
-  //qcd_files.push_back(InputFile(    66  , 310000)); // 600_800
-  //qcd_files.push_back(InputFile(    12  , 130000)); // 800_1200
-  //qcd_files.push_back(InputFile(    0.63,  30000)); // 1200_1600
-  //qcd_files.push_back(InputFile(    0.54,  25000)); // 1600_2000
+  //qcd_files.push_back(InputFile(590000)); // 100_150
+  //qcd_files.push_back(InputFile( 83000)); // 150_200
+  //qcd_files.push_back(InputFile( 24000)); // 200_300
+  //qcd_files.push_back(InputFile(  3000)); // 300_400
+  //qcd_files.push_back(InputFile(   730)); // 400_600
+  //qcd_files.push_back(InputFile(    66)); // 600_800
+  //qcd_files.push_back(InputFile(    12)); // 800_1200
+  //qcd_files.push_back(InputFile(    0.63)); // 1200_1600
+  //qcd_files.push_back(InputFile(    0.54)); // 1600_2000
 
-  for (int j = 0; j<20;++j){
-    wzjj_files.push_back(InputFile(xsec_wzjj)); // wzjj 
-    wprime400_files.push_back(InputFile(xsec_wprime400)); // 400 GeV
-  }
-  
+  wzjj_files.push_back(InputFile(xsec_wzjj)); // wzjj 
+  wprime400_files.push_back(InputFile(xsec_wprime400)); // 400 GeV
+
+
+ 
 
   return 0;
 }
@@ -264,12 +304,23 @@ int Load_Cross_Sections(vector<InputFile> & wzjj_files,
 void Set_Branch_Addresses(TTree* WZtree)
 {
 //-----------------------------------------------------------
-  WZtree->SetBranchAddress("W_flavor",&W_flavor);
-  WZtree->SetBranchAddress("Z_flavor",&Z_flavor);
-//  WZtree->SetBranchAddress("triggerBitMask", &triggerBitMask);
-  WZtree->SetBranchAddress("numberOfZs",&numberOfZs);
-  WZtree->SetBranchAddress("WZ_invMassMinPz",&WZ_invMassMinPz);
+    if(debugme) cout<<"Setting Branch Addresses"<<endl;
 
+    WZtree->SetBranchAddress("W_flavor",&W_flavor);
+    WZtree->SetBranchAddress("Z_flavor",&Z_flavor);
+//  WZtree->SetBranchAddress("triggerBitMask", &triggerBitMask);
+    WZtree->SetBranchAddress("numberOfZs",&numberOfZs);
+    WZtree->SetBranchAddress("WZ_invMassMinPz",&WZ_invMassMinPz);
+    WZtree->SetBranchAddress("jet_energy",&jet_energy);
+    WZtree->SetBranchAddress("jet_et",&jet_et);
+    WZtree->SetBranchAddress("jet_eta",&jet_eta);
+    WZtree->SetBranchAddress("jet_mass",&jet_mass);
+    WZtree->SetBranchAddress("jet_phi",&jet_phi);
+    WZtree->SetBranchAddress("jet_pt",&jet_pt);
+    WZtree->SetBranchAddress("jet_px",&jet_px);
+    WZtree->SetBranchAddress("jet_py",&jet_py);
+    WZtree->SetBranchAddress("jet_pz",&jet_pz);
+  
 }//Set_Branch_Addresses
 
 
@@ -284,8 +335,13 @@ void Fill_Histos(int index, float weight)
 {
 //-----------------------------------------------------------
 
-  hWZInvMass[index]->Fill(WZ_invMassMinPz, weight);
-
+    
+    hWZInvMass[index]->Fill(WZ_invMassMinPz, weight);
+    hJetMult[index]->Fill(jet_energy->size(),weight);
+    if(jet_eta->size() > 1){
+        hJetsDeltaEta[index]->Fill(deltaEta(jet_eta->at(0),
+                                            jet_eta->at(1)),weight);
+    }
 
 }//Fill_Histos
 
@@ -304,6 +360,8 @@ void saveHistos(TFile * fout, string dir)
 
   for(int i = 0; i != Num_histo_sets; ++i){
         hWZInvMass[i]->Write();
+        hJetMult[i]->Write();
+        hJetsDeltaEta[i]->Write();
   }
 
   return;
@@ -336,9 +394,9 @@ void printSummary(ofstream & out, const string& dir,
             getEff(eff, deff, Nexp_evt_cut[i], Nexp_evt);
         else
             getEff(eff, deff, Nexp_evt_cut[i], Nexp_evt_cut[i-1]);
-        out << ", Relative eff = "<<eff*100 << " +- " << deff*100 << "%";
+        out << ", Relative eff = "<<eff*100 << " +/- " << deff*100 << "%";
         getEff(eff, deff, Nexp_evt_cut[i], Nexp_evt);
-        out << ", Absolute eff = "<< eff*100 << " +- " << deff*100 << "%"
+        out << ", Absolute eff = "<< eff*100 << " +/- " << deff*100 << "%"
              << endl;
         
         //to do: put these results in a file
@@ -369,8 +427,8 @@ void Tabulate_Me(int Num_surv_cut[], int& cut_index,
 
     //since the event has passed the cut,
     //increase the cut_index for the next cut
-    if(debugme) cout<<"cut_index is now = "<<endl;
     ++cut_index;
+    if(debugme) cout<<"cut_index is now = "<<cut_index<<endl;
 
 }//Tabulate_Me
 
@@ -421,6 +479,30 @@ bool ExeedMaxNumberOfZs_Cut(const int& max_num_Zs)
 }//--- MaxNumberOfZs_Cut
 
 
+//-----------------------------------------------------------
+bool HasTwoEnergeticForwardJets_Cut(const float& cutMinJetE,
+                                    const float& cutMinJetPt,
+                                    const float& cutMinJetsDeltaEta)
+{
+//-----------------------------------------------------------
+
+    
+    //Here we assume that the jet collections are ordered in energy
+    //and in pT, which is true if the root-uple comes from PAT-uples
+    bool has_fwdjets = false;
+    int njets = jet_energy->size();
+    if(njets < 2) return has_fwdjets;
+    
+    has_fwdjets = (jet_energy->at(0) > cutMinJetE &&
+                   jet_energy->at(1) > cutMinJetE) &&
+        (jet_pt->at(0) > cutMinJetPt &&
+         jet_pt->at(1) > cutMinJetPt) &&
+        deltaEta(jet_eta->at(0),jet_eta->at(1))>cutMinJetsDeltaEta;
+
+    return has_fwdjets;
+
+
+}//-----HasTwoEnergeticForwardJets
 
 
 
@@ -450,7 +532,7 @@ void Get_Distributions(vector<InputFile>& files,
     if(!files[tr].tree)
       continue;
 
-    if (debugme) cout << "Processing file "<<files[tr].pathname<<endl;
+    cout << "Processing file "<<files[tr].pathname<<endl;
     
 
     TTree *WZtree = files[tr].tree;    
@@ -468,9 +550,9 @@ void Get_Distributions(vector<InputFile>& files,
     //The ides is to keep each cut as a separate entity 
     //so they can be better handled
     for(int i = 0; i != nevents; ++i){//event loop
-
+        
       WZtree->GetEntry(i);
-
+      if (debugme) cout<<"Processing event "<<i<<endl;
       //an index to indicate current cut number
       int cut_index = 0;
 
@@ -481,9 +563,13 @@ void Get_Distributions(vector<InputFile>& files,
       Tabulate_Me(Num_surv_cut,cut_index,weight);
       if(ExeedMaxNumberOfZs_Cut(cutMaxNumZs)) continue;
       Tabulate_Me(Num_surv_cut,cut_index,weight);
-
-
+      if(!HasTwoEnergeticForwardJets_Cut(cutMinJetE,
+                                         cutMinJetPt,
+                                         cutMinJetsDeltaEta)) continue;
+      Tabulate_Me(Num_surv_cut,cut_index,weight);
+         
     }//event loop
+    
     
     // total # of events (before any cuts)
     Nexp_evt += nevents * weight;
@@ -519,7 +605,7 @@ void ExecuteAnalysis()
 
   //value of lumi to be used in the analysis
   //the weights will scale accordingly.
-  float lumiPb = 100000;
+  float lumiPb = 20000;
  
   //name of file where to write all histograms
   TFile *fout = new TFile("Wprime_analysis.root","recreate");

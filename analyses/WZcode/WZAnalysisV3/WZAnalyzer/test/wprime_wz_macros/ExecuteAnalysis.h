@@ -54,6 +54,15 @@ Int_t           W_flavor;
 Int_t           Z_flavor;
 Int_t           numberOfZs;
 Float_t         WZ_invMassMinPz;
+vector<float>   *jet_energy;
+vector<float>   *jet_et;
+vector<float>   *jet_eta;
+vector<float>   *jet_mass;
+vector<float>   *jet_phi;
+vector<float>   *jet_pt;
+vector<float>   *jet_px;
+vector<float>   *jet_py;
+vector<float>   *jet_pz;
 
 // +++++++++++++++++++useful constants
 const double PI    = 2.0 * acos(0.);
@@ -62,12 +71,17 @@ const bool debugme = false; //print stuff if active
 
 
 // +++++++++++++++++++ Histogram Definitions
-const int Num_histo_sets = 3; //matches the number of cuts
+const int Num_histo_sets = 4; //matches the number of cuts
 TH1F * hWZInvMass[Num_histo_sets];
+TH1F * hJetMult[Num_histo_sets];
+TH1F * hJetsDeltaEta[Num_histo_sets];
 
 
 // +++++++++++++++++++General Cut values
 const int cutMaxNumZs = 1;
+const float cutMinJetE = 300;
+const float cutMinJetPt = 10;
+const float cutMinJetsDeltaEta = 4;
 
 
 
@@ -104,7 +118,6 @@ const float cutCalRelIso[]   = {0.100, 0.160};
 const float cutTrackRelIso[] = {0.100, 0.100};
 
 // ++++++++++++++++++++ Other Cuts
-
 const float minSeparation = 0.1;
 
 
@@ -115,6 +128,7 @@ void RecruitOrderedFiles(vector<InputFile> & files, const int& Nfiles,
                          const string& mask2, const string& file_desc);
 string convertIntToStr(int number);
 void getEff(float & eff, float & deff, float Num, float Denom);
+double deltaEta(double eta1, double eta2);
 double deltaPhi(double phi1, double phi2);
 void Declare_Histos();
 double deltaR(double eta1, double phi1, double eta2, double phi2);
@@ -136,6 +150,8 @@ void ExecuteAnalysis();
 bool PassTriggers_Cut();
 bool HasValidWandZ_Cut();
 bool ExeedMaxNumberOfZs_Cut(const int& max_num_Zs);
-
+bool HasTwoEnergeticForwardJets_Cut(const float& cutMinJetE,
+                                    const float& cutMinJetPt,
+                                    const float& cutMinJetsDeltaEta);
 
 #endif//#define _ExecuteAnalysis_h_
