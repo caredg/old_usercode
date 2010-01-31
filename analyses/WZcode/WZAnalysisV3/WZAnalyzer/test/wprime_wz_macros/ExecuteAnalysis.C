@@ -51,8 +51,6 @@ double deltaEta(double eta1, double eta2)
     return eta;
 }
 
-
-
 //------------------------
 void Compare_Histos(vector<InputFile>& files, TFile* fout){
     /*
@@ -147,8 +145,8 @@ void Declare_Histos()
 
   //Ht Histos
   float HtMin = 0.;
-  float HtMax = 700.;
-  int Htbin = int(HtMax);
+  float HtMax = 1000.;
+  int Htbin = 100;
   hHt[0] = new TH1F("hHt_hlt","H_{T} (hlt);Lepton Pt Sum;",Htbin,HtMin,HtMax);
   hHt[1] = new TH1F("hHt_flavor","H_{T} (flavor);Lepton Pt Sum;",Htbin,HtMin,HtMax);
   hHt[2] = new TH1F("hHt_numZs","H_{T} (numZs);Lepton Pt Sum;",Htbin,HtMin,HtMax);
@@ -161,7 +159,7 @@ void Declare_Histos()
   //Wpt Histos
   float WptMin = 0.;
   float WptMax = 200.;
-  int Wptbin = int(WptMax);
+  int Wptbin = 20;
   hWpt[0] = new TH1F("hWpt_hlt","p_{T}(W) (hlt);p_{T} of W;",Wptbin,WptMin,WptMax);
   hWpt[1] = new TH1F("hWpt_flavor","p_{T}(W) (flavor);p_{T} of W;",Wptbin,WptMin,WptMax);
   hWpt[2] = new TH1F("hWpt_numZs","p_{T}(W) (numZs);p_{T} of W;",Wptbin,WptMin,WptMax);
@@ -175,7 +173,7 @@ void Declare_Histos()
   //Zpt Histos
   float ZptMin = 0.;
   float ZptMax = 200.;
-  int Zptbin = int(ZptMax);
+  int Zptbin = 20;
   hZpt[0] = new TH1F("hZpt_hlt","p_{T}(Z) (hlt);p_{T} of Z;",Zptbin,ZptMin,ZptMax);
   hZpt[1] = new TH1F("hZpt_flavor","p_{T}(Z) (flavor);p_{T} of Z;",Zptbin,ZptMin,ZptMax);
   hZpt[2] = new TH1F("hZpt_numZs","p_{T}(Z) (numZs);p_{T} of Z;",Zptbin,ZptMin,ZptMax);
