@@ -15,8 +15,12 @@
 void getEff(float & eff, float & deff, float Num, float Denom)
 {
 //--------------------------------------------------------------
-  eff = Num/Denom;
-  deff = TMath::Sqrt(eff * (1-eff)/Denom);
+    if(Denom){
+	eff = Num/Denom;
+	deff = TMath::Sqrt(eff * (1-eff)/Denom);
+    }else{
+	eff = deff = 0;
+    }
 
 }//getEff
 
@@ -51,49 +55,6 @@ double deltaEta(double eta1, double eta2)
     return eta;
 }
 
-//------------------------
-void Compare_Histos(vector<InputFile>& files, TFile* fout){
-    /*
-    cout<<"In Compare_Histos"<<endl;
-    int Nfiles = files.size();
-    for(int tr = 0; tr != Nfiles; ++tr){
-	if(!files[tr].tree)
-	    continue;
-
-	cout << "Processing file "<<files[tr].pathname<<endl;
-	TTree *WZtree1 = files1[tr].tree;    
-	TTree *WZtree2 = files2[tr].tree;    
-	
-	for(int i=0; i<Num_histo_sets; ++i){
-	    WZtree1->SetEntryList(cutlist1[i]);
-	    WZtree2->SetEntryList(cutlist2[i]);
-	    
-	    WZtree1->SetLineColor(kRed);
-	    WZtree2->SetLineColor(kBlue);
-	    
-	    WZtree1->Draw("",);
-	    WZtree2->Draw("","same");
-	}
-	
-    }
-
-
-    string dir1 = "wzjj";
-    string dir2 = "wprime40";
-
-    string path1 = (dir1+"hWZInvMass_Zmass");
-    string path2 = (dir2+"hWZInvMass_Zmass");
-    //char* path1 = dir1.c_str();
-    //char* path2 = dir1.c_str();
-
-
-    //TH1F* hcomp1 = (TH1F*) fout->Get(path1.c_str());
-    //TH1F* hcomp2 = (TH1F*) fout->Get(path2.c_str());
-
-    //hcomp1->Draw(); hcomp2->Draw("same");
-    */    
-}
-//------------------------------
 
 //--------------------------------------------------------------
 void Declare_Histos()
@@ -182,6 +143,11 @@ void Declare_Histos()
   hZpt[5] = new TH1F("hZpt_fwdjets","p_{T}(Z) (fwdjets);p_{T} of Z;",Zptbin,ZptMin,ZptMax);
   hZpt[6] = new TH1F("hZpt_Zmass","p_{T}(Z) (Zmass);p_{T} of Z;",Zptbin,ZptMin,ZptMax);
   hZpt[7] = new TH1F("hZpt_Zpt","p_{T}(Z) (Zpt);p_{T} of Z;",Zptbin,ZptMin,ZptMax);
+
+  hNumEvts = new TH1F("hNumEvts","Expected # of Events",Num_histo_sets,0,Num_histo_sets);
+  hEffRel = new TH1F("hEffRel","Relative Efficiency",Num_histo_sets,0,Num_histo_sets);
+  hEffAbs = new TH1F("hEffAbs","Absolute Efficiency",Num_histo_sets,0,Num_histo_sets);
+  
 
 }//Declare_Histos
 
@@ -517,6 +483,9 @@ void saveHistos(TFile * fout, string dir)
 	hZpt[i]->Write();
 	cutlist[i]->Write();
   }
+  hNumEvts->Write();
+  hEffRel->Write();
+  hEffAbs->Write();
   
   return;
 
@@ -541,16 +510,22 @@ void printSummary(ofstream & out, const string& dir,
     for(int i = 0; i < Num_histo_sets; ++i){
         
         out <<"Cut # "<<i<<": expected evts = " << Nexp_evt_cut[i];
-        
+	hNumEvts->Fill(i,Nexp_evt_cut[i]);
+
         //calculate efficiencies
         float eff, deff;
-        if(i == 0)
+        if(i == 0){
             getEff(eff, deff, Nexp_evt_cut[i], Nexp_evt);
-        else
+	    hEffRel->Fill(i,eff*100);	
+	}else{
             getEff(eff, deff, Nexp_evt_cut[i], Nexp_evt_cut[i-1]);
+	    hEffRel->Fill(i,eff*100);
+	}
         out << ", Relative eff = "<<eff*100 << " +/- " << deff*100 << "%";
-        getEff(eff, deff, Nexp_evt_cut[i], Nexp_evt);
-        out << ", Absolute eff = "<< eff*100 << " +/- " << deff*100 << "%"
+        
+	getEff(eff, deff, Nexp_evt_cut[i], Nexp_evt);
+        hEffAbs->Fill(i,eff*100);
+	out << ", Absolute eff = "<< eff*100 << " +/- " << deff*100 << "%"
              << endl;
         
         //to do: put these results in a file
@@ -720,7 +695,7 @@ bool PassMuonCut()
 //-----------------------------------------------------------
 bool PassMuonSip(int index)
 {
-     float Sip = muon_innerD0->at(index) / muon_innerD0Error->at(index);
+    float Sip = muon_innerD0->at(index) / muon_innerD0Error->at(index);
     return Sip < cutWmuD0;  //Cory: inner or global D0
 }//--- Muon Sip Cut
 
@@ -1147,8 +1122,6 @@ void ExecuteAnalysis()
 
   out.close(); 
   fout->Close();
-
-  //Compare_Histos(wzjj_files,fout);
 
 }//ExecuteAnalysis
 

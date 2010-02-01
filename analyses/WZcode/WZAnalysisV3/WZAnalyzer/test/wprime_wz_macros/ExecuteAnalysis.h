@@ -110,6 +110,9 @@ TH1F * hJetsDeltaEta[Num_histo_sets];
 TH1F * hHt[Num_histo_sets];
 TH1F * hWpt[Num_histo_sets];
 TH1F * hZpt[Num_histo_sets];
+TH1F * hEffRel;
+TH1F * hEffAbs;
+TH1F * hNumEvts;
 
 TEntryList *cutlist[Num_histo_sets];
 
@@ -128,7 +131,7 @@ const float minHtMet = 0;
 
 const float cutZMuon_pt = 10.;
 const float cutWMuon_pt = 20.;
-const float cutWmuD0 = 8.;
+const float cutWmuD0 = 8.; //Sip
 const float cutWmuCombRelIso = 0.1;
 
 const float maxMuonEta = 2.5;
@@ -219,5 +222,5 @@ bool PassHtCut();
 bool PassHtMetCut();
 
 float Calc_Ht();
-void Compare_Histos(vector<InputFile>& files,TFile* fout);
+
 #endif//#define _ExecuteAnalysis_h_
