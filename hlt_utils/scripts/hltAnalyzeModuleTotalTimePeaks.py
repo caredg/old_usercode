@@ -137,7 +137,7 @@ def run_hltTimingSummary(tmin, outfile):
         print "WARNING! exclude.txt does not exist"
 
         
-    hltTS_command = "$CMSSW_BASE/test/$SCRAM_ARCH/hltTimingSummary -i "+ inrootfile +" -o "+ outfile + " -f -s -e "+ exclusionfile + " -t "+ totaltimehist_maxX + " -b "+ totaltimehist_bin + " -l " + tmin + " -p "+ pdfverbosity
+    hltTS_command = "$CMSSW_BASE/test/$SCRAM_ARCH/hltTimingSummary -i "+ inrootfile +" -o "+ outfile + " -f -c -s -e "+ exclusionfile + " -t "+ totaltimehist_maxX + " -b "+ totaltimehist_bin + " -l " + tmin + " -p "+ pdfverbosity
 
     if (DEBUG):
         print hltTS_command
