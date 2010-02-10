@@ -117,6 +117,9 @@ def parse_HLTReport(inflist):
 #            aux = fline.find('HLT-Report')
             aux = fline.find('TrigReport')
             if (aux == 0):
+                saux3 = fline.find('Events total')
+                if (saux3!= -1):
+                    print "Total Events = "+fline.split()[4]
                 saux = fline.find('Modules in Path') 
                 if( saux != -1):
                     break
