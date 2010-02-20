@@ -11,24 +11,23 @@
 #        
 # 
 # Oct 5, 2009
-#
+# Severely modified Dec 11, 2009: Now use getHLT.py from the release area.
 # 
 ############################################################################
 
 """
    usage: %prog [options]
-   -k, --hltkey = HLTKEY: HLT menu configuration. Ex: /cdaq/cosmic/commissioning2009/CRAFT/v2.4/HLT/V2
+   -k, --hltkey = HLTKEY: HLT menu configuration. Ex: 'orcoff:/cdaq/cosmic/commissioning2009/CRAFT/v2.4/HLT/V2' or '/online/blah/blah/HLT/V1'
    -n, --events = EVENTS: number of events to be run. Default is -1 (run over all events)
    -l, --list   = LIST: file with list of files (dataset).  If not specified a dummy file is inserted. (NOT IMPLEMENTED)
-   -g, --gtag = GLOBAL : Global tag. e.g., GR_P1_V1 (leave the ::All part out).  If not specified, the tag in the implementation is taken. (NOT IMPLEMENTED)
-   -d, --devel : Turns off the orcoff switch for extracting HLT menu config. Default is on.
-   -u, --usecase = USERCASE  : If GEN-HLT is specified, a stripped file is generated for the GEN-HLT workflow.  Default is ONLINE for minimal modifications.
+   -L, --l1over  =  L1OVER: Enable L1 menu override, using the given payload from the database. Ex L1_mymenu_v5
+   -g, --gtag = GLOBAL : Global tag. e.g., GR_P1_V1 (leave the ::All part out).  If not specified, the tag in the implementation is taken.
    -i, --id = ID : Id in file name.  Default is GRunData.
    -t, --timing : Switches on the timing module. Default is off.
    -r, --run = RUNNUMBER : Run number
    -s, --singlerun : Use --singleRun in error_stream_collector.pl script if errstream studies is activated.
-   -e, --era = ERA : This activates errstream studies. Era for the error_stream_collector.pl script. Ex: MWGR_40_2009
-   -m, --online : Do not make the modification to run offline.  Default is to make the modifications to run offline.
+   -e, --era = ERA : This activates errstream studies. Era for the error_stream_collector.pl script. Ex: Data
+   -m, --dontmess : Do not make any additional modification on top of what the getHLT.py script already does
 """
 
 
@@ -39,8 +38,8 @@ import commands
 from time import gmtime, localtime, strftime
 
 #flag to debug
-DEBUG = True
-
+DEBUG = False
+printConfig = True
 
 # _____________________OPTIONS_______________________________________________
 
@@ -116,24 +115,22 @@ def run_errstream_collector(singleRun, era, irun):
 
 
 #######################################################
-def run_on_errorstream(dicOpt):
+def run_on_errorstream(configfile, dicOpt):
 #######################################################
+
     if (DEBUG):
         print "running run_on_errorstream"
         
-    if dicOpt['era'] and dicOpt['run']:
-        singleRun = dicOpt['singlerun']
-        era = dicOpt['era']
-        irun = dicOpt['run']
-        #run the script error_stream_collector.pl and return
-        #the location of the copied files
-        errDir = run_errstream_collector(singleRun,era,irun)
-    else:
-        print "You need --era to activate running on errorstream"
-        return 0
+    singleRun = dicOpt['singlerun']
+    era = dicOpt['era']
+    irun = dicOpt['run']
+    #run the script error_stream_collector.pl and return
+    #the location of the copied files
+    errDir = run_errstream_collector(singleRun,era,irun)
 
     #From Maurizio:
     inputdir = errDir
+    print "inputdir = "+inputdir
     # check the input directory
     if not os.path.isdir(inputdir):
         print "ERROR: input directory does not exist"
@@ -162,8 +159,10 @@ def run_on_errorstream(dicOpt):
     #continue
 #if HLT != "none": os.system("/afs/cern.ch/user/m/mpierini/public/TMI/ErrorStream/getHLT.py "+HLT+" GRunData")
 # loop over the input files and produce the output file
+    print "\nLooping over files.... be patient" 
     for line in list:
         filename = line.split("/")[3].split(".dat")[0]
+        print "Working on file = "+filename
         #copy the tenmplate file
         os.system("cp /afs/cern.ch/user/m/mpierini/public/TMI/ErrorStream/converterError_cfg.py template_cfg.py")
         #create the conversion _py.cfg file 
@@ -172,15 +171,16 @@ def run_on_errorstream(dicOpt):
         for templateline in template: mycfgfile.write(templateline.replace("file:in", "file:"+inputdir+"/"+filename).replace("file:out", "file:"+outputdir+"/root/"+filename))
         template.close()
         mycfgfile.close()
-        # run the .dat->.root conversion _py.cfg file
+         #run the .dat->.root conversion _py.cfg file
         os.system("cmsRun "+outputdir+"/cfg/"+filename+"_cfg.py >&"+outputdir+"/log/convert_"+filename+".log")
+        
         # run the requested HLT menu on the ErrorStream .root file
         # and log the output 
-        template2 = open("OnLine_HLT_GRunData.py")
+        template2 = open(configfile)
         mycfgfile2 = open(outputdir+"/cfg/"+filename+"_HLT_cfg.py","w")
         for templateline in template2:
             if templateline.find(".root") != -1:
-                mycfgfile2.write(templateline.replace("RawInput_GRunData","").replace("file:","file:"+outputdir+"/root/").replace(".root",filename+".root"))
+                mycfgfile2.write(templateline.replace("/tmp/InputCollection","").replace("file:","file:"+outputdir+"/root/").replace(".root",filename+".root"))
             else:
                 mycfgfile2.write(templateline.replace("process.hltTriggerType +", " "))
                 continue
@@ -188,11 +188,13 @@ def run_on_errorstream(dicOpt):
         template2.close()
         mycfgfile2.close()
         os.system("cmsRun "+outputdir+"/cfg/"+filename+"_HLT_cfg.py >& "+outputdir+"/log/convert_"+filename+"_HLT.log")
+        os.system("mv output*"+filename+"* "+outputdir+"/root/.")
         continue
     list.close()
-    #os.system("rm OnLine_HLT_GRunData.py")
-    os.system("rm myFilesList.tmp")
-    os.system("rm template_cfg.py")
+    if not (DEBUG):
+        os.system("rm myFilesList.tmp")
+        os.system("rm template_cfg.py")
+
     
     return 0
 
@@ -202,164 +204,49 @@ def run_on_errorstream(dicOpt):
 def modify_config_file(configfile,dicOpt):
 #######################################################
 
-    # exit if no modification is requested
-    nomodif = dicOpt['online']
-    if nomodif:
-        return 0
-    
     outName = configfile
     numevents = dicOpt['events']
     poolout = dicOpt['filename']
-    gtag = dicOpt['gtag']
-    useCase = dicOpt['usecase']
     timing = dicOpt['timing']
     myID = dicOpt['id']
     
-    #
-    # in situ replacements:
-    #    - Convert ShmStreamConsumer to PoolOutputModule
-    #
-    addAnaly = True
-    for line in fileinput.input(outName,inplace=1):
-        if line.find("HLTAnalyzerEndpath")>= 0:
-            addAnaly = False
-        if line.find("ShmStreamConsumer") >= 0:
-            line = line.replace('ShmStreamConsumer','PoolOutputModule')
-            outputName = line[line.find(".")+1:line.find("=")-1]
-            print line[:-1]
-            print "    fileName = cms.untracked.string('file:HLT_" + outputName + ".root'),"
-            print "    basketSize = cms.untracked.int32(4096),"
-        else:
-            print line[:-1]
+    #Modify Message logger to report every 50 events and WARN
+    mlogger_str = "sed -i.original -e '0, /reportEvery = cms.untracked.int32( 1 )/s//reportEvery = cms.untracked.int32( 50 )/' -e '0, /threshold = cms.untracked.string( \"ERROR\" )/s//threshold = cms.untracked.string( \"WARNING\" )/' -e 's#\(^ *limit = cms.untracked.int32( \)0 )#\\1100000 )#' "+outName
+    os.system(mlogger_str)
 
+    #Modify Event Number content if requested
+    if numevents:
+        nevents_str = "sed -i.nume 's#\(^ *input = cms.untracked.int32(\) .* )#\\1 "+numevents+ " )#' "+outName
+        os.system(nevents_str)
 
-    #
-    # Overwrite ProcessName, PoolSource and include maxEvents
-    #
-    os.system("cat >> "+outName+" <<EOI\nprocess.setName_('HLT"+myID+"')\nEOI\n")
-    os.system("cat >> "+outName+" <<EOI\nprocess.source = cms.Source(\"PoolSource\",\nEOI\n")
-    if myID.find("Data") >= 0:
-        os.system("cat >> "+outName+" <<EOI\n    fileNames = cms.untracked.vstring('file:RawInput_"+myID+".root')\nEOI\n")
-    else:
-        os.system("cat >> "+outName+" <<EOI\n    fileNames = cms.untracked.vstring('file:RelVal_DigiL1Raw_"+myID+".root')\nEOI\n")
-    os.system("cat >> "+outName+" <<EOI\n)\nEOI\n")
+    #add output file and check if timing is needed    
+    myfile = open(outName,'a')
 
-    os.system("cat >> "+outName+" <<EOI\nprocess.maxEvents = cms.untracked.PSet(\nEOI\n")
-    os.system("cat >> "+outName+" <<EOI\n    input = cms.untracked.int32("+numevents+")\nEOI\n")
-    os.system("cat >> "+outName+" <<EOI\n)\nEOI\n")
-
-    #
-    # Overwrite GlobalTag
-    #
-    print "WARNING: Global Tags are harcoded for now check if they are correct!!!"
-    os.system("cat >> "+outName+" <<EOI\nprocess.GlobalTag.connect = 'frontier://FrontierProd/CMS_COND_31X_GLOBALTAG'\nEOI\n")
-
-    if myID.find("Data") >= 0:
-        os.system("cat >> "+outName+" <<EOI\n# Use this for running on CRAFT 09 data\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\nprocess.GlobalTag.globaltag = 'GR09_P_V3::All'\nEOI\n")
-    else:
-       
-        if myID.find("8E29") >= 0:
-            os.system("cat >> "+outName+" <<EOI\nprocess.GlobalTag.globaltag = 'STARTUP31X_V2::All'\nEOI\n")
-        elif myID.find("GRun") >= 0:            
-            os.system("cat >> "+outName+" <<EOI\nprocess.GlobalTag.globaltag = 'STARTUP31X_V2::All'\nEOI\n")
-        elif myID.find("1E31") >= 0:
-            os.system("cat >> "+outName+" <<EOI\nprocess.GlobalTag.globaltag = 'MC_31X_V1::All'\nEOI\n")
-        elif myID.find("HIon") >= 0:
-            os.system("cat >> "+outName+" <<EOI\nprocess.GlobalTag.globaltag = 'MC_31X_V1::All'\nEOI\n")
-        else:
-            os.system("cat >> "+outName+" <<EOI\nprocess.GlobalTag.globaltag = 'MC_31X_V1::All'\nEOI\n")
-
-
-    # 
-    # Running on Monte Carlo: change RAW input from "source" to "rawDataCollector"
-    #
-    prefix = "process."
-    if useCase == "GEN-HLT":
-        prefix = ""
-
-    #
-    # Special case: Running on 0T data
-    #
-    if myID.find("GRun") >= 0:
-        os.system("cat >> "+outName+" <<EOI\n\n# Uncomment these lines to run on 0T data\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# process.GlobalTag.globaltag = 'GR09_P_V3::All'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# process.localUniform = cms.ESProducer( \"UniformMagneticFieldESProducer\",\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n#   ZFieldInTesla = cms.double( 0.0 ),\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n#   appendToDataLabel = cms.string( \"\" )\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# )\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# process.es_prefer_localUniform = cms.ESPrefer( \"UniformMagneticFieldESProducer\", \"localUniform\" )\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# "+prefix+"FastSteppingHelixPropagatorAny.SetVBFPointer = True\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# "+prefix+"FastSteppingHelixPropagatorOpposite.SetVBFPointer = True\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# "+prefix+"SteppingHelixPropagatorAlong.SetVBFPointer = True\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# "+prefix+"SteppingHelixPropagatorAny.SetVBFPointer = True\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# "+prefix+"SteppingHelixPropagatorOpposite.SetVBFPointer = True\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# "+prefix+"VolumeBasedMagneticFieldESProducer.label = 'VolumeBasedMagneticField'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n# End of 0T changes\nEOI\n")
-        
-        
-        
-    if myID.find("MC") >= 0:
-        os.system("cat >> "+outName+" <<EOI\n\n# Data vs. Monte Carlo changes\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltGtDigis.DaqGtInputTag = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltGctDigis.inputLabel = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltSiPixelDigis.InputLabel = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltSiStripRawToClustersFacility.ProductLabel = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltEcalRawToRecHitFacility.sourceTag = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltESRawToRecHitFacility.sourceTag = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltHcalDigis.InputLabel = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltMuonCSCDigis.InputObjects = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltMuonDTDigis.inputLabel = cms.untracked.InputTag( 'rawDataCollector' )\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltMuonRPCDigis.InputLabel = 'rawDataCollector'\nEOI\n")
-        if myID.find("GRun") >= 0:
-            os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltPixelFEDSizeFilter.rawData = 'rawDataCollector'\nEOI\n")
-            os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltEcalCalibrationRaw.rawInputLabel = 'rawDataCollector'\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltAlCaHcalFEDSelector.rawInputLabel = 'rawDataCollector'\nEOI\n")
-        if useCase != "GEN-HLT":
-            os.system("cat >> "+outName+" <<EOI\n"+prefix+"DQML1Scalers.fedRawData = 'rawDataCollector'\nEOI\n")
-            os.system("cat >> "+outName+" <<EOI\n"+prefix+"DQMHLTScalers.triggerResults = cms.InputTag( 'TriggerResults','','HLT"+myID+"' )\nEOI\n")
-        
-    #
-    # Include the HLTAnalyzerEndpath
-    #
-    if myID.find("GRun") >= 0  and addAnaly:
-        os.system("cat >> "+outName+" <<EOI\n\n# Attach HLTAnalyzerEndpath\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltL1GtTrigReport = cms.EDAnalyzer( \"L1GtTrigReport\",\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n    UseL1GlobalTriggerRecord = cms.bool( False ),\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n    L1GtRecordInputTag = cms.InputTag( \"hltGtDigis\" )\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n)\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"hltTrigReport = cms.EDAnalyzer( \"HLTrigReport\",\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n    HLTriggerResults = cms.InputTag( 'TriggerResults','','HLT"+myID+"' )\nEOI\n")
-        os.system("cat >> "+outName+" <<EOI\n)\nEOI\n")
+    myfile.write("""
+#Output
+process.output = cms.OutputModule("PoolOutputModule",
+    splitLevel = cms.untracked.int32(0),
+    outputCommands = cms.untracked.vstring( 'drop *', 'keep HLTPerformanceInfo_*_*_*'),
+    fileName = cms.untracked.string('HLT.root'),
+    dataset = cms.untracked.PSet(
+        dataTier = cms.untracked.string('RECO'),
+        filterName = cms.untracked.string('')
+    )
+)
+\n""")
     
-        os.system("cat >> "+outName+" <<EOI\n"+prefix+"HLTAnalyzerEndpath = cms.EndPath( "+prefix+"hltL1GtTrigReport + "+prefix+"hltTrigReport )\nEOI\n")
-        if useCase == "GEN-HLT":
-            os.system("cat >> "+outName+" <<EOI\n"+prefix+"HLTSchedule.append( HLTAnalyzerEndpath ) \nEOI\n")
+    #add timing module if requested
+    if timing:
+        myfile.write("""
+#timer
+process.PathTimerService = cms.Service( "PathTimerService" )
+process.hltTimer = cms.EDProducer( "PathTimerInserter" )
+process.HLTOutput_edgar = cms.EndPath( process.hltTimer + process.output)
+\n""")
+           
+
+    myfile.close()
     
-
-    #
-    # The following is stolen from cmsDriver's ConfigBuilder.py - addCustomise
-    #
-    if useCase != "GEN-HLT":        
-        # let python search for that package and do syntax checking at the same time
-        packageName = 'HLTrigger/Configuration/customL1THLT_Options.py'.replace(".py","").replace(".","/")
-        package = __import__(packageName)
-        
-        # now ask the package for its definition and pick .py instead of .pyc
-        customiseFile = package.__file__.rstrip("c")
-        
-        
-        final_snippet='\n\n# Automatic addition of the customisation function\n'
-        for line in file(customiseFile,'r'):
-            if "import FWCore.ParameterSet.Config" in line:
-                continue
-            final_snippet += line
-            
-        final_snippet += '\n\n# End of customisation function definition'
-        final_snippet += "\n\nprocess = customise(process)\n"
-            
-        os.system("cat >> "+outName+" <<EOI\n"+final_snippet+"EOI\n")
-
   
     return 0
 
@@ -370,121 +257,26 @@ def get_basic_config(dicOpt):
 #######################################################
 
     dbName = dicOpt['hltkey']
-    myorcoff = dicOpt['devel']
-    useCase = dicOpt['usecase']
     myID = dicOpt['id']
-    
-    
-    if useCase == "ONLINE":
-        outName = "OnLine_HLT_"+myID+".py"
-    else:    
-        outName = "HLT_"+myID+"_cff.py"
+    myl1ov = dicOpt['l1over']
+    mygtag = dicOpt['gtag']
+    outName = "OnLine_HLT_"+myID+".py"
 
-    if os.path.exists(outName):
-        print outName, "already exists - abort!"
-        exit()
+    #check if require global tag
+    if (mygtag):
+        getgtag = "-- globaltag "+mygtag+" "
     else:
-        # Initialize everything
-        essources = "  " 
-        esmodules = "  "
-        modules   = "  "
-        services  = "  "
-        paths     = "  "
-        psets     = "  "
-        edsources = "  "
+        getgtag = ""
 
-        # Required for online-compliant menus
-        edsources = "--noedsources"
-        
-        if useCase == "GEN-HLT":
-            essources = "--essources "
-            essources += "-SiStripQualityFakeESSource,"
-            essources += "-GlobalTag,"
-            essources += "-HepPDTESSource,"
-            essources += "-XMLIdealGeometryESSource,"
-            essources += "-eegeom,"
-            essources += "-es_hardcode,"
-            essources += "-magfield"
-            
-            esmodules = "--esmodules "
-            esmodules += "-CSCGeometryESModule,"
-            esmodules += "-CaloGeometryBuilder,"
-            esmodules += "-CaloTowerHardcodeGeometryEP,"
-            esmodules += "-DTGeometryESModule,"
-            esmodules += "-EcalBarrelGeometryEP,"
-            esmodules += "-EcalElectronicsMappingBuilder,"
-            esmodules += "-EcalEndcapGeometryEP,"
-            esmodules += "-EcalLaserCorrectionService,"    
-            esmodules += "-EcalPreshowerGeometryEP,"
-            esmodules += "-HcalHardcodeGeometryEP,"
-            esmodules += "-HcalTopologyIdealEP,"
-            esmodules += "-MuonNumberingInitialization,"
-            esmodules += "-RPCGeometryESModule,"
-            esmodules += "-SiStripGainESProducer,"
-            esmodules += "-SiStripRecHitMatcherESProducer,"
-            esmodules += "-StripCPEfromTrackAngleESProducer,"
-            esmodules += "-TrackerDigiGeometryESModule,"
-            esmodules += "-TrackerGeometricDetESModule,"
-            esmodules += "-VolumeBasedMagneticFieldESProducer,"    
-            esmodules += "-ZdcHardcodeGeometryEP,"
-            esmodules += "-hcal_db_producer,"
-            esmodules += "-l1GtTriggerMenuXml,"
-            esmodules += "-sistripconn"
-            
-            services  = "--services -MessageLogger"
-            
-            paths     = "--paths -HLTOutput,-AlCaOutput,-ESOutput,-MONOutput"
-            
-            psets     = "--psets -maxEvents,-options"
-            
 
-            myGet = "edmConfigFromDB --cff --configName " + dbName + " " + essources + " " + esmodules + " " + modules + " " + services + " " + paths + " " + psets + " > " + outName
-            os.system(myGet)
-            
-
-            # Inline replacements: Remove prescalers for removed endpaths
-            inPrescaleService = False
-            inPreServESOutput = False
-            inPreServMONOutput = False
-            preCounter = -1 
-            for line in fileinput.input(outName,inplace=1):
-                if inPrescaleService and line.find("pathName") >= 0:
-                    inPreServESOutput = False
-                    inPreServMONOutput = False
-                    if line.find("ESOutput") >= 0:
-                        inPreServESOutput = True
-                        preCounter = 0
-                    elif line.find("MONOutput") >= 0:
-                        inPreServMONOutput = True
-                        preCounter = 0
-                if line.find("PrescaleService") >= 0:
-                    inPrescaleService = True
-                    print line[:-1]
-                elif inPrescaleService:
-                    if inPreServESOutput or inPreServMONOutput:
-                        preCounter += 1
-                        if preCounter > 3:
-                            inPreServESOutput = False
-                            inPreServMONOutput = False
-                            preCounter = -1
-                            print line[:-1]
-                        else:
-                            print line[:-1]
-                            if line.find(")") == 0:
-                                inPrescaleService = False
-                else:
-                    print line[:-1]
-            
-        else:
-            myGet = "edmConfigFromDB "+ myorcoff +" --configName " + dbName + " " + edsources + " " + essources + " " + esmodules + " " + modules + " " + services + " " + paths + " " + psets + " > " + outName
-            os.system(myGet)
+    getHLT = "$CMSSW_RELEASE_BASE/src/HLTrigger/Configuration/test/getHLT.py"
+    #The options might change from release to release:
+    dogetHLT = getHLT+" --data --force "+getgtag+dbName+" "+myID
+    os.system(dogetHLT)
+    #print dogetHLT
 
 
     return outName
-
-
-
-
 
 
 #######################################################
@@ -507,23 +299,17 @@ def get_default_options(option):
     else:
         dicOpt['filename'] = "dummy_input.root"
 
+    # override L1 menu?
+    if not option.l1over:
+            dicOpt['l1over'] = None
+    else:
+        dicOpt['l1over'] = "--l1"
+
     # global tag
     if not option.gtag:
         dicOpt['gtag'] = None
     else:
         dicOpt['gtag'] = str(option.gtag)
-
-    # switch for orcoff
-    if not option.devel:
-        dicOpt['devel'] = "--orcoff"
-    else:
-        dicOpt['devel'] = ""
-
-    # usecase option
-    if not option.usecase:
-        dicOpt['usecase'] = "ONLINE"
-    else:
-        dicOpt['usecase'] = str(option.usecase)
 
     #Id in file name
     if not option.id:
@@ -556,10 +342,10 @@ def get_default_options(option):
         dicOpt['era'] = str(option.era)
 
     #Modification to offline
-    if not option.online:
-        dicOpt['online'] = False
+    if not option.dontmess:
+        dicOpt['dontmess'] = False
     else:
-        dicOpt['online'] = option.online
+        dicOpt['dontmess'] = option.dontmess
 
      
 
@@ -585,16 +371,28 @@ if __name__ =='__main__':
 
     #set default options
     dicOpt = get_default_options(option)
-    if (DEBUG):
+
+    if (printConfig):
         for k in dicOpt:
             print str(k)+" = "+str(dicOpt[k])
     
     #get the basic configuration file
     configfile = get_basic_config(dicOpt)
-    #modify cfg file to run offline is requested
-    modify_config_file(configfile,dicOpt)
+    #modify cfg file to run offline if requested
+    # exit if no modification is requiered
+    if not dicOpt['dontmess']:
+        modify_config_file(configfile,dicOpt)
+    else:
+        print "The config dump has not been modified"
     #run on error stream files if requested
-    run_on_errorstream(dicOpt)
+    if dicOpt['era'] and dicOpt['run']:
+        run_on_errorstream(configfile,dicOpt)
+    else:
+        if dicOpt['run']:
+            print "NOTE: You need --era to activate running on errorstream"
+
+    
+    
     
     
     
