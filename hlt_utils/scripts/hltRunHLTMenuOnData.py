@@ -14,7 +14,9 @@
 # Severely modified Dec 11, 2009: Now use getHLT.py from the release area.
 # 
 ############################################################################
-
+#Current example:
+#Feb 26, 2010:
+# nice ./hltRunHLTMenuOnData.py -k orcoff:/cdaq/cosmic/commissioning2010/GR/HLT/V14 -r 128216 -e Data &
 """
    usage: %prog [options]
    -k, --hltkey = HLTKEY: HLT menu configuration. Ex: 'orcoff:/cdaq/cosmic/commissioning2009/CRAFT/v2.4/HLT/V2' or '/online/blah/blah/HLT/V1'
@@ -22,7 +24,7 @@
    -l, --list   = LIST: file with list of files (dataset).  If not specified a dummy file is inserted. (NOT IMPLEMENTED)
    -L, --l1over  =  L1OVER: Enable L1 menu override, using the given payload from the database. Ex L1_mymenu_v5
    -g, --gtag = GLOBAL : Global tag. e.g., GR_P1_V1 (leave the ::All part out).  If not specified, the tag in the implementation is taken.
-   -i, --id = ID : Id in file name.  Default is GRunData.
+   -i, --id = ID : Id in file name.  Default is TEST (now working now).
    -t, --timing : Switches on the timing module. Default is off.
    -r, --run = RUNNUMBER : Run number
    -s, --singlerun : Use --singleRun in error_stream_collector.pl script if errstream studies is activated.
@@ -38,7 +40,7 @@ import commands
 from time import gmtime, localtime, strftime
 
 #flag to debug
-DEBUG = False
+DEBUG = True
 printConfig = True
 
 # _____________________OPTIONS_______________________________________________
@@ -168,6 +170,7 @@ def run_on_errorstream(configfile, dicOpt):
         #create the conversion _py.cfg file 
         template  = open("template_cfg.py")
         mycfgfile = open(outputdir+"/cfg/"+filename+"_cfg.py","w")
+
         for templateline in template: mycfgfile.write(templateline.replace("file:in", "file:"+inputdir+"/"+filename).replace("file:out", "file:"+outputdir+"/root/"+filename))
         template.close()
         mycfgfile.close()
@@ -180,7 +183,7 @@ def run_on_errorstream(configfile, dicOpt):
         mycfgfile2 = open(outputdir+"/cfg/"+filename+"_HLT_cfg.py","w")
         for templateline in template2:
             if templateline.find(".root") != -1:
-                mycfgfile2.write(templateline.replace("/tmp/InputCollection","").replace("file:","file:"+outputdir+"/root/").replace(".root",filename+".root"))
+                mycfgfile2.write(templateline.replace("rfio:","file:").replace("/castor/cern.ch/cms/store/data/BeamCommissioning09/ZeroBias/RAW/v1/000/123/734/D28203D4-AFE3-DE11-ADEE-001D09F2527B","").replace("file:","file:"+outputdir+"/root/").replace(".root",filename+".root"))
             else:
                 mycfgfile2.write(templateline.replace("process.hltTriggerType +", " "))
                 continue
@@ -260,7 +263,7 @@ def get_basic_config(dicOpt):
     myID = dicOpt['id']
     myl1ov = dicOpt['l1over']
     mygtag = dicOpt['gtag']
-    outName = "OnLine_HLT_"+myID+".py"
+    outName = "OnData_HLT_"+myID+".py"
 
     #check if require global tag
     if (mygtag):
@@ -271,7 +274,7 @@ def get_basic_config(dicOpt):
 
     getHLT = "$CMSSW_RELEASE_BASE/src/HLTrigger/Configuration/test/getHLT.py"
     #The options might change from release to release:
-    dogetHLT = getHLT+" --data --force "+getgtag+dbName+" "+myID
+    dogetHLT = getHLT+" --process TEST" + " --full --data --force --offline "+getgtag+dbName+" TEST" 
     os.system(dogetHLT)
     #print dogetHLT
 
@@ -313,7 +316,7 @@ def get_default_options(option):
 
     #Id in file name
     if not option.id:
-        dicOpt['id'] = "GRunData"
+        dicOpt['id'] = "TEST"
     else:
         dicOpt['id'] = str(option.id)
 
