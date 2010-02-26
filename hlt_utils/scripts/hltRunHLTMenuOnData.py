@@ -17,6 +17,8 @@
 #Current example:
 #Feb 26, 2010:
 # nice ./hltRunHLTMenuOnData.py -k orcoff:/cdaq/cosmic/commissioning2010/GR/HLT/V14 -r 128216 -e Data &
+#One liner awk:
+#grep "TrigReport Events" errstream/log/* | awk '{print $1" "$2" "$3$4$5" "$6$7$8" "$9$10$11" error=" ($5-($8)-($11))}'
 """
    usage: %prog [options]
    -k, --hltkey = HLTKEY: HLT menu configuration. Ex: 'orcoff:/cdaq/cosmic/commissioning2009/CRAFT/v2.4/HLT/V2' or '/online/blah/blah/HLT/V1'
