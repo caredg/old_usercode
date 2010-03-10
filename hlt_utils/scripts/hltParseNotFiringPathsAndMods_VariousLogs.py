@@ -76,10 +76,10 @@ def parse_TrigReport(inflist):
                             myIdx+=1
                             
                             
-    print "\nPATHS THAT DID NOT FINISH RUNNING "
-    print "FIRST MODULE INDICATES THE ONE CAUSING THE FAILURE"
-    print "THE REST OF THE MODULES WERE NEVER RUN IN THE PATH"
-
+    print "\nBREAK-UP OF MODULES IN PATHS "
+    print "THE TABBED (>) MODULE NAMES INDICATE THOSE THAT"
+    print "WERE NOT RUN.  THE FIRST TABBED MODULE, HOWEVER,"
+    print "INDICATES THE MODULE THAT ABORTED THE EXECUTION OF THE PATH" 
 
     #order results
     Ks = allPaths.keys()
@@ -90,12 +90,16 @@ def parse_TrigReport(inflist):
     for k in Ks:
         printPath = True
         for m in range(len(allPaths[k][0])):
-            if allPaths[k][1][m] == 0:
-                if printPath:
+            if printPath:
                     print "\n"+str(mycounter) +". %%%%%%%%%%% PATH "+k+":"
                     mycounter+=1
                     printPath = False
+            if allPaths[k][1][m] > 0:
                 print allPaths[k][0][m]
+            elif allPaths[k][1][m] == 0:
+                print "\t> "+ allPaths[k][0][m]
+            
+                
 
                 
 
