@@ -11,6 +11,7 @@
    usage: %prog [options]
    -s, --startdate = STARTDATE: Required start date of run/range in this format: 'Feb 29, 18:30'. 
    -e, --enddate = ENDDATE: Optional end date of run/range in this format: 'Mar 1, 06:00' Default is now.
+   -p, --printdate: If used, print an additional (copy) but with date. 
 """
 
 
@@ -22,8 +23,6 @@ import commands
 import time
 
 #flag to debug
-debugme = False
-printConfig = True
 
 # _____________________OPTIONS_______________________________________________
 
@@ -80,7 +79,11 @@ def run_parsing(dicOpt):
 
     runstart = dicOpt['startdate']
     runend = dicOpt['enddate']
-    
+    if dicOpt['printdate'] is not None:
+        debugme = True
+    else:
+        debugme = False
+        
     #this year
     currentYear = str(datetime.datetime.now().year)
 
@@ -129,7 +132,7 @@ def run_parsing(dicOpt):
                 #make a decision to print or not
                 if cepoch>=sepoch and cepoch<=eepoch:
                     print mybufu+mycore
-                    if debugme:
+                    if debugme is not None:
                         print mybufu+" "+mycore+"\t"+mystime
         #if line has bufu but nothing else store the
         #name until you find a core that fits in the range
@@ -147,26 +150,6 @@ def run_parsing(dicOpt):
                     print mybufu+" "+mycore+"\t"+mystime
 
                 
-#######################################################
-def get_default_options(option):
-#######################################################
-    dicOpt = {}
-    
-    if not option.startdate:
-        print "you need a run/range start date"
-        exit()
-    else:
-        dicOpt['startdate'] = str(option.startdate)
-
-    if not option.enddate:
-        dicOpt['enddate'] = ""
-    else:
-        dicOpt['enddate'] = str(option.enddate)
-
-    return dicOpt
-
-
-
 
 #######################################################
 def get_default_options(option):
@@ -183,6 +166,12 @@ def get_default_options(option):
         dicOpt['enddate'] = ""
     else:
         dicOpt['enddate'] = str(option.enddate)
+
+    if not option.printdate:
+        dicOpt['printdate'] = None
+    else:
+        dicOpt['printdate'] = option.printdate
+
 
     return dicOpt
 
@@ -206,7 +195,7 @@ if __name__ =='__main__':
     #set default options
     dicOpt = get_default_options(option)
 
-    if (printConfig):
+    if dicOpt['printdate'] is not None:
         for k in dicOpt:
             print str(k)+" = "+str(dicOpt[k])    
 
