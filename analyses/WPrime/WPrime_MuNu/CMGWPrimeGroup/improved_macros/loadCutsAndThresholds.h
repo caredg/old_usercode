@@ -36,8 +36,9 @@ const float Muon_Eta_Cut = 1.8;
 const int Num_histo_sets = 6; // one new set of histograms after each cut
 const int Num_trkAlgos = 3; // global, tracker, tev_1st
 const string algo_desc[Num_trkAlgos] = {"gbl","trk","tev"};
-const string cuts_desc[Num_histo_sets] = {"hlt","ptrange","1mu","iso", "jet", "qual"};
+const string cuts_desc[Num_histo_sets] = {"hlt","1mu","ptrange","iso", "jet", "qual"};
 const bool debugme = false;
+const bool debugmemore = false;
 
 // +++++++++++++++++++++++++++++++muon-pt histogram parameters
 const unsigned  nBinPtMu = 45; // 400; // 45; // 18; 200; 380; 
@@ -84,27 +85,11 @@ TH1F* hNMu, *hPtMaxMu, *hPtMaxMuTrackVeto,
 TH1F * hPTplus[Num_trkAlgos] = {0};
 TH1F * hPTminus[Num_trkAlgos] = {0};
 // ++++++++++++++++++++++++++++++++Useful constants
-// if 1, get just the final counts, if 2
+// if 1, get just the final counts, if 2 get final counts and
+// the counts second to last, and so on.
 const int Num_histo_sets_chargePt = 1; 
 
 
-
-
-
-// $$$$$$$$$$$$$$$$$$$$$ Optimization (option = 4)
-// +++++++++++++++++++++parameters
-const string optimdir = "forOptimization";
-const int o_maxNumCuts = 1035;
-const int o_NmuTrkPt = 10;
-const float o_muonTrackPt[o_NmuTrkPt] = {5,10,15,20,25,30,35,40,45,50};
-const int o_indexDeltaR[9] = {0,1,2,3,4,5,6,7,8};
-const float o_pTIso[5] = {6,8,10,12,14};
-const float o_ETJetVeto[5] = {80,90,100,110,120};
-const float o_DphiJetVeto[5] = { TMath::Pi() - 0.1, 
-                                 TMath::Pi() - 0.2, 
-                                 TMath::Pi() - 0.3, 
-                                 TMath::Pi() - 0.4,
-                                 TMath::Pi() - 0.5};
 
 
 
@@ -124,7 +109,8 @@ unsigned NjetAboveThresh(float threshold, float delta_phi,
 
 
 // +++++++++++++++++++++++++ Declare cut methods
-bool PassedHLT(const wprime::Event* ev, wprime::Muon*& the_mu);
+bool PassedHLT(const wprime::Event* ev,wprime::Muon*& the_mu,
+	       const bool& loopMuons);
 bool IsMuonPtInRange(const wprime::Muon* mu,const string& algo_name,
                      const float& min_MuPt, const float& max_MuPt);
 bool OnlyOneHighTrackPtMuon(const wprime::Event* ev, 

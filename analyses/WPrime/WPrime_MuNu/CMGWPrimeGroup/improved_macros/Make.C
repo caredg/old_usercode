@@ -48,35 +48,40 @@
   // option = 2 : GetMuonPtDistribution_JetIso
   // option = 3 : GetChargePtDistribution
 
-  const int option = 2;
+  const int option = 1;
+
+
+//switch on or off looping over muons;
+bool loopMuons = true;
+
   
    string dir = "QCD";
    gROOT->ProcessLine("loadInputFiles(dir, qcd_files, lumiPb, detector_conditions)");
-   gROOT->ProcessLine("GetDistributionGeneric(qcd_files, fout, dir, out,option)");
+   gROOT->ProcessLine("GetDistributionGeneric(qcd_files, fout, dir, out,option,loopMuons)");
   
    dir = "Z";
    gROOT->ProcessLine("loadInputFiles(dir, z_files, lumiPb, detector_conditions)");
-   gROOT->ProcessLine("GetDistributionGeneric(z_files, fout, dir, out,option)");
+   gROOT->ProcessLine("GetDistributionGeneric(z_files, fout, dir, out,option,loopMuons)");
 
    dir = "W";
    gROOT->ProcessLine("loadInputFiles(dir, w_files, lumiPb, detector_conditions)");
-   gROOT->ProcessLine("GetDistributionGeneric(w_files, fout, dir, out,option)");
+   gROOT->ProcessLine("GetDistributionGeneric(w_files, fout, dir, out,option,loopMuons)");
   
    dir = "Top";
    gROOT->ProcessLine("loadInputFiles(dir, top_files, lumiPb, detector_conditions)");
-   gROOT->ProcessLine("GetDistributionGeneric(top_files, fout, dir, out,option)");  
+   gROOT->ProcessLine("GetDistributionGeneric(top_files, fout, dir, out,option,loopMuons)");  
 
    dir = "wprime10";
    gROOT->ProcessLine("loadInputFiles(dir, wprime10_files, lumiPb, detector_conditions)");
-   gROOT->ProcessLine("GetDistributionGeneric(wprime10_files, fout, dir, out,option)"); 
+   gROOT->ProcessLine("GetDistributionGeneric(wprime10_files, fout, dir, out,option,loopMuons)"); 
 
    dir = "wprime15";
    gROOT->ProcessLine("loadInputFiles(dir, wprime15_files, lumiPb, detector_conditions)");
-   gROOT->ProcessLine("GetDistributionGeneric(wprime15_files, fout, dir, out,option)");
+   gROOT->ProcessLine("GetDistributionGeneric(wprime15_files, fout, dir, out,option,loopMuons)");
  
    dir = "wprime20";
    gROOT->ProcessLine("loadInputFiles(dir, wprime20_files, lumiPb, detector_conditions)");
-   gROOT->ProcessLine("GetDistributionGeneric(wprime20_files, fout, dir, out,option)"); 
+   gROOT->ProcessLine("GetDistributionGeneric(wprime20_files, fout, dir, out,option,loopMuons)"); 
 
   out.close(); 
   fout->Close();

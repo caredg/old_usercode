@@ -141,16 +141,18 @@ unsigned NjetAboveThresh(float threshold, float delta_phi,
 
 //Check if HLT conditions are met.
 //-------------------------------------------------------------------
-bool PassedHLT(const wprime::Event* ev,wprime::Muon*& the_mu)
+bool PassedHLT(const wprime::Event* ev,wprime::Muon*& the_mu,
+	       const bool& loopMuons)
 {
 //-------------------------------------------------------------------
-    if(debugme) cout<<"Executing PassedHLT()"<<endl;
+    if(debugmemore) cout<<"Executing PassedHLT()"<<endl;
     
     //here the triggers that are to be used
     bool HLT = ev->HLT_Mu9;
     //Pass the hardest muon in event
-    GetTheHardestMuon(ev,the_mu);
-    
+
+    if(!loopMuons) GetTheHardestMuon(ev,the_mu);
+
     return HLT;
 }//-------PassedHLT()
 
@@ -165,7 +167,7 @@ bool IsMuonPtInRange(const wprime::Muon* mu,const string& algo_name,
                      const float& min_MuPt, const float& max_MuPt)
 {
 //-------------------------------------------------------------------
-    if(debugme) cout<<"Processing IsMuonPtInRange()"<<endl;
+    if(debugmemore) cout<<"Processing IsMuonPtInRange()"<<endl;
     bool checkptrange = false;
     
     //Make sure there is a muon
@@ -200,7 +202,7 @@ bool OnlyOneHighTrackPtMuon(const wprime::Event* ev,
 {
 //-------------------------------------------------------------------
 
-    if(debugme) cout<<"Processing OnlyOneHighTrackPtMuon()"<<endl;
+    if(debugmemore) cout<<"Processing OnlyOneHighTrackPtMuon()"<<endl;
     bool OneMuon = (NmuAboveThresh(one_mu_pt_trkcut, ev, the_mu) == 1);
     return OneMuon;
     
@@ -216,7 +218,7 @@ bool SumPtIsolation(const wprime::Muon* the_mu,
                     const float& sum_pt_cut)
 {
 //-------------------------------------------------------------------
-    if(debugme) cout<<"Processing SumPtIsolation()"<<endl;
+    if(debugmemore) cout<<"Processing SumPtIsolation()"<<endl;
     bool iso = false;
     iso = the_mu->SumPtIso[detR_iso_index] <= sum_pt_cut;
     return iso;
@@ -233,7 +235,7 @@ bool ExeedMaxNumJetsOpposedToMu(const unsigned& max_jets_aboveThresh,
                               const wprime::Event* ev)
 {
 //-------------------------------------------------------------------
-    if(debugme) cout<<"Processing ExeedMaxNumJetsOpposedToMu()"<<endl;
+    if(debugmemore) cout<<"Processing ExeedMaxNumJetsOpposedToMu()"<<endl;
     bool JetActivity = (NjetAboveThresh(et_jet_cut, delta_phi, 
 						the_mu, ev) > max_jets_aboveThresh);
     return JetActivity;
@@ -249,7 +251,7 @@ bool HasQuality(const wprime::Muon* mu,
                 const float& chi2_cut,const float& muon_etacut)
 {
 //-------------------------------------------------------------------
-    if(debugme) cout<<"Processing HasQuality()"<<endl;
+    if(debugmemore) cout<<"Processing HasQuality()"<<endl;
     bool isHard = mu->tracker.p.Pt() >= pttrk_cut;
     bool checkqual = false;
     if (!strcmp(algo_name.c_str(),"gbl")){

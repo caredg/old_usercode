@@ -17,17 +17,14 @@ using std::cout; using std::endl; using std::vector; using std::string;
 void printSummary_MuonPt(ofstream & out, const string& dir, 
                          const float& Nexp_evt, 
                          float Nexp_evt_cut[][Num_trkAlgos]);
-void printSummary_Optim(const string& dir, 
-                        float optNbefore[], 
-                        float optNafter[][Num_trkAlgos],
-                        const int& option);
 void defineHistos_MuonPt();
 void defineHistos_MuonPtJetIso();
 void defineHistos_MuonChargePt();
 void defineHistos(const int& option);
+void passMethrough(int Num_surv_cut[], int& cut_index,bool accountme[]);
 void tabulateMe(int Num_surv_cut[], int& cut_index, 
                  const float& weight,const wprime::Muon* mu,
-                const string& algo_name, const int& option);
+                const string& algo_name, const int& option, bool accountme[]);
 void fillHistos_MuonPt(int index, float weight,const wprime::Muon* mu,
                        const string& algo_name);
 void fillHistos_MuonChargePt(int index, float weight,const wprime::Muon* mu,
@@ -43,47 +40,13 @@ void gatherFileBasicInfo(const wprime::InputFile& file,
 void GetMuonPtDistribution_JetIso(const wprime::InputFile& file);
 void GetMuonPtDistribution(const wprime::InputFile& file, 
                            float Nexp_evt_cut[][Num_trkAlgos],
-                           float& Nexp_evt, const int& option);
-void Optimize_OnlyOneMuon(const wprime::Event* ev, 
-                          wprime::Muon*& the_mu,
-                          int countsAfter[]);
-void GetCutsOptimization(const wprime::InputFile& file, 
-                         float optNbefore[],
-                         float optNafter[][Num_trkAlgos], 
-                         const int& option);
+                           float& Nexp_evt, const int& option,
+			   const bool& loopMuons);
 
 
 
 
-//--------------------------------------------------------------------------
-void printSummary_Optim(const string& dir,
-                        float  optNbefore[], 
-                        float optNafter[][Num_trkAlgos],
-                        const int& option)
-{
-//------------------------------------------------------------------------
-    string outdir = optimdir;
-    TSystem mysys;
-    //create directory if it does not exist
-    mysys.MakeDirectory(outdir.c_str());
 
-    if (option == 4){
-        string cutType = cuts_desc[2];//1mu
-        string outfile = outdir +"/"+ dir + "_" + cutType +".dat";
-        ofstream out(outfile.c_str());
-        if(!out) {cout << "Cannot open file " << outfile << endl; abort();}
-        //populate the *.dat file
-        for(int j = 0; j < Num_trkAlgos ; ++j){//populate dat file
-            for (int k = 0; k < o_NmuTrkPt; ++k){
-                out<<algo_desc[j]<<"\t"<<o_muonTrackPt[k]<<"\t"
-                   <<optNbefore[j]<<"\t"<<optNafter[k][j]<<endl;
-            }
-        }//populate dat file
-    }//option == 4
-    else {cout<<"Nothing to print for this optim study"<<endl; return;}
-
-
-}//--------printSummary_Optim
 
 
 
@@ -143,14 +106,8 @@ void defineHistos_MuonPt()
 			  nBinPtMu,minPtMu,maxPtMu);
   hPT[index][2]= new TH1F("hPTtev_trig","TeV-1st Muon Pt with HLT",
 			  nBinPtMu,minPtMu,maxPtMu);
-   ++index;
-    
-   hPT[index][0] = new TH1F("hPTglb_all","Global Muon Pt",
- 			   nBinPtMu,minPtMu,maxPtMu);
-   hPT[index][1] = new TH1F("hPTtrk_all","Tracker Muon Pt",
- 			   nBinPtMu,minPtMu,maxPtMu);
-   hPT[index][2] = new TH1F("hPTtev_all","TeV-1st Muon Pt",
- 			   nBinPtMu,minPtMu,maxPtMu);
+
+  
   ++index;
   
   hPT[index][0]= new TH1F("hPTglb_1mu","Global Muon Pt 1 muon",
@@ -159,6 +116,20 @@ void defineHistos_MuonPt()
 			  nBinPtMu,minPtMu,maxPtMu);
   hPT[index][2]= new TH1F("hPTtev_1mu","TeV-1st Muon Pt 1 muon",
 			  nBinPtMu,minPtMu,maxPtMu);
+
+  //switched places with 1mu, so the "all" tag does not make sense
+  //any more. Fix!
+  ++index;
+ 
+   hPT[index][0] = new TH1F("hPTglb_all","Global Muon Pt",
+ 			   nBinPtMu,minPtMu,maxPtMu);
+   hPT[index][1] = new TH1F("hPTtrk_all","Tracker Muon Pt",
+ 			   nBinPtMu,minPtMu,maxPtMu);
+   hPT[index][2] = new TH1F("hPTtev_all","TeV-1st Muon Pt",
+ 			   nBinPtMu,minPtMu,maxPtMu);
+
+  
+   
   ++index;
 
   hPT[index][0]= new TH1F("hPTglb_iso","Global Muon Pt iso",
@@ -263,7 +234,26 @@ void defineHistos(const int& option)
 
 
 
+//Just pass through if nothing is done
+//-----------------------------------------------------------
+void passMethrough(int Num_surv_cut[], int& cut_index, 
+		   bool accountme[])
+{
+//-----------------------------------------------------------
+ if(debugme) cout<<"Passing through...cut index: "<<cut_index<<endl;
 
+    //if the accountme switch is on,
+    //increase the number of events passing the cuts
+    //and turn the switch off so we don't over count
+    if (accountme[cut_index]) {
+      ++Num_surv_cut[cut_index];
+      accountme[cut_index] = false;
+    }
+    //increase the cut number
+    ++cut_index;
+    
+
+}//------------passMetrhough
 
 
 //tabulate results after the cut has been passed
@@ -271,18 +261,22 @@ void defineHistos(const int& option)
 //-----------------------------------------------------------
 void tabulateMe(int Num_surv_cut[], int& cut_index, 
                  const float& weight,const wprime::Muon* mu,
-                const string& algo_name, const int& option)
+                const string& algo_name, const int& option,
+		bool accountme[])
 {
 //-----------------------------------------------------------
     if(debugme) cout<<"Tabulating results for cut_index = "
                     <<cut_index<<endl;
-
+    //if the accountme switch is on,
     //increase the number of events passing the cuts
-    ++Num_surv_cut[cut_index];
+    //and turn the switch off so we don't over count
+    if (accountme[cut_index]) {
+      ++Num_surv_cut[cut_index];
+      accountme[cut_index] = false;
+    }
     //fill the histograms
     if(option == 1) fillHistos_MuonPt(cut_index,weight,mu,algo_name);
     else if(option == 3) fillHistos_MuonChargePt(cut_index,weight,mu,algo_name);
-//    else if(option == 3) fillHistos_MuonChargePt(cut_index,weight,mu,algo_name);
     else cout<<"WARNING!! I can't tabulate anything for this study.."<<endl;
 
     //since the event has passed the cut,
@@ -514,90 +508,6 @@ void GetMuonPtDistribution_JetIso(const wprime::InputFile& file)
 
 
 
-//Optimze OnlyOneMuon cut 
-//---------------------------------------------------------------------------
-void Optimize_OnlyOneMuon(const wprime::Event* ev, 
-                          wprime::Muon*& the_mu,
-                          int countsAfter[])
-{
-//---------------------------------------------------------------------------
-
-    //Loop over the colection of thresholds
-    for (int nn = 0; nn < o_NmuTrkPt; ++nn){
-        float pttrkcut = o_muonTrackPt[nn];
-        if(!OnlyOneHighTrackPtMuon(ev,the_mu,pttrkcut)) continue;
-        ++countsAfter[nn];
-    }
-
-    return;
-
-}//-----Optimize_OnlyOneMuon()
-
-
-
-
-
-
-
-// Optimize cuts
-//---------------------------------------------------------------------------
-void GetCutsOptimization(const wprime::InputFile& file, 
-                         float optNbefore[],
-                         float optNafter[][Num_trkAlgos], 
-                         const int& option)
-{
-//---------------------------------------------------------------------------
-
-    //gather file basic info
-    wprime::Event * ev = 0;
-    int nevents = 0; float weight = 0.0;
-    gatherFileBasicInfo(file,ev,nevents,weight);
-
-    //loop over muon algos
-    for (int mual = 0; mual<Num_trkAlgos; ++mual){//algo loop
-        
-        const string algoName = algo_desc[mual];
-        //counter (unweighted) events after cuts
-        int countsBefore = 0;
-        int countsAfter[o_maxNumCuts] = {0};
-        
-        //Loop over events:
-        for(int i = 0; i != nevents; ++i){ // event loop
-            if(debugme) cout<<"##########Processing event # "<<i+1<<endl;
-            
-            file.tree->GetEntry(i);
-            
-            //an index to indicate current cut number
-            wprime::Muon* theMu = 0;
-            //default cuts
-            if (!PassedHLT(ev,theMu)) continue;
-            if (!IsMuonPtInRange(theMu,algoName,minPtMu,maxPtMu)) continue;
-            ++countsBefore;
-            //optimize according to requirements sets
-            if (option == 4) Optimize_OnlyOneMuon(ev,theMu,countsAfter);
-            else {cout<<"Nothing to be optimized"<<endl; return;}
-            
-        }//event loop
-        
-        //Number of expected events for each cut (weighted)
-        if (option == 4) {
-            for(int ii = 0; ii < o_NmuTrkPt; ++ii){
-                optNbefore[mual] += countsBefore * weight;
-                optNafter[ii][mual] += countsAfter[ii] * weight;
-            }
-        }
-        else {cout<<"Something went wrong...quiting..."<<endl; abort();}
-    }//muon algo loop
-
-    delete ev;
-
-
-}//-----------GetCutsOptimization()
-
-
-
-
-
 
 //Main Analysis study
 // TODO: Maybe rename the method to a more general one because
@@ -607,7 +517,8 @@ void GetCutsOptimization(const wprime::InputFile& file,
 //---------------------------------------------------------------------------
 void GetMuonPtDistribution(const wprime::InputFile& file, 
                            float Nexp_evt_cut[][Num_trkAlgos],
-                           float& Nexp_evt, const int& option)
+                           float& Nexp_evt, const int& option,
+			   const bool& loopMuons)
 {
 //---------------------------------------------------------------------------
 
@@ -624,30 +535,74 @@ void GetMuonPtDistribution(const wprime::InputFile& file,
 
         //Loop over events:
         for(int i = 0; i != nevents; ++i){ // event loop
-            if(debugme) cout<<"##########Processing event # "<<i+1<<endl;
+            if(debugme) cout<<"##########Processing event #: "<<i+1<<endl;
             
             file.tree->GetEntry(i);
-            
-            //an index to indicate current cut number
-            int cut_index = 0;
+            int nmuons = ev->mu->GetLast() + 1;
             wprime::Muon* theMu = 0;
-            //apply cuts 
-            if (!PassedHLT(ev,theMu)) continue;
-            tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option);
-            if (!IsMuonPtInRange(theMu,algoName,minPtMu,maxPtMu)) continue;
-            tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option);
-            if (!OnlyOneHighTrackPtMuon(ev,theMu,
-                                        OneMuPtTrackCut)) continue;
-            tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option);
-            if (!SumPtIsolation(theMu,deltaRIsoIndex,SumPtCut)) continue;
-            tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option);
-            if (ExeedMaxNumJetsOpposedToMu(MaxNjetsAboveThresh, 
-                                           EtJetCut, Delta_Phi,
-                                           theMu,ev)) continue;
-            tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option);
-            if (!HasQuality(theMu,algoName,PtTrackCut,
-                            Chi2Cut,Muon_Eta_Cut)) continue;
-            tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option);
+	    // switch to indicate whether we account the tabulation
+	    // for efficiency calculation or not.  This mainly has to
+	    // do with muon looping, and basically takes care of
+	    // increasing the Num_surv_cut container or not.  However,
+	    // we do fill the histograms for every muon regardless.
+	    bool accountme[Num_histo_sets];
+	    for(int mm = 0;mm<Num_histo_sets;++mm){
+	      accountme[mm] = true;
+	    }
+
+	    //loop over muons if needed
+	    //the loopMuons switch manipulates the muon loop
+	    //functionality
+	    for (int mi = 0; mi < nmuons; ++mi){//loop over muons
+	       if(debugme) cout<<"##########Processing muon #: "<<mi+1<<endl;
+	      //cut index to keep track of the order of cuts
+	      int cut_index = 0;
+	      //get the muon
+	      wprime::Muon* mu = (wprime::Muon *) ev->mu->At(mi);
+	      theMu = mu;
+	      // apply cuts
+	      //>>>>>>>>>>CUT 1
+	      if (!PassedHLT(ev,theMu,loopMuons)) continue;
+	      tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option,
+			 accountme);
+	      //>>>>>>>>>>CUT 2
+	      //only do the onemuon cut if not looping over muons
+	      if (!loopMuons){
+		if (!OnlyOneHighTrackPtMuon(ev,theMu,OneMuPtTrackCut)) continue;
+		tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option, 
+			   accountme);
+	      }
+	      else {
+		//One could put a cut on pT on the muon; for now
+		//just pass through
+		passMethrough(Num_surv_cut,cut_index,accountme);
+	      }
+
+	      //>>>>>>>>>>CUT 3
+	      if (!IsMuonPtInRange(theMu,algoName,minPtMu,maxPtMu)) continue;
+	      tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option,
+			 accountme);
+	      
+	      //>>>>>>>>>>CUT 4
+	      if (!SumPtIsolation(theMu,deltaRIsoIndex,SumPtCut)) continue;
+	      tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option,
+			 accountme);
+	      //>>>>>>>>>>CUT 5
+	      if (ExeedMaxNumJetsOpposedToMu(MaxNjetsAboveThresh, 
+					     EtJetCut, Delta_Phi,
+					     theMu,ev)) continue;
+	      tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option,
+			 accountme);
+	      //>>>>>>>>>>CUT 6
+	      if (!HasQuality(theMu,algoName,PtTrackCut,
+			      Chi2Cut,Muon_Eta_Cut)) continue;
+	      tabulateMe(Num_surv_cut,cut_index,weight,theMu,algoName,option,
+			 accountme);
+	      //break if not looping over muons because the one muon pt cut
+	      //already selected the good one for us.
+	      if(!loopMuons) {break;}
+
+	    }//muon loop
         }//event loop
         
         //Number of expected events for each cut (weighted)
@@ -671,7 +626,8 @@ void GetMuonPtDistribution(const wprime::InputFile& file,
 //---------------------------------------------------------------------------
 void GetDistributionGeneric(const vector<wprime::InputFile>& files, 
                             TFile *fout, string dir, ofstream & out, 
-                            const int option = 1)
+                            const int option = 1, 
+			    const bool loopMuons = false)
 {
 //---------------------------------------------------------------------------
     if(debugme) cout<<"$$$$$$$$$$$$$$$$$$$$GetDistributionGeneric"<<endl;
@@ -684,10 +640,6 @@ void GetDistributionGeneric(const vector<wprime::InputFile>& files,
     //initialize counters to be used in studies
     float Nexp_evt = 0;
     float Nexp_evt_cut[Num_histo_sets][Num_trkAlgos] = {0};
-    //for optimization studies
-    float optNbefore[Num_trkAlgos] = {0};
-    float optNafter[o_maxNumCuts][Num_trkAlgos] = {0};
-
 
     //loop over background and signal files
     for(int tr = 0; tr != Nfiles; ++tr){//loop over files
@@ -696,22 +648,18 @@ void GetDistributionGeneric(const vector<wprime::InputFile>& files,
             continue;
         cout << " Processing sample " << files[tr].description << endl;
         
-        if (option == 1) GetMuonPtDistribution(files[tr],
-                                               Nexp_evt_cut,Nexp_evt,option);
+        if (option == 1 || option == 3) GetMuonPtDistribution(files[tr],
+							      Nexp_evt_cut,
+							      Nexp_evt,option,
+							      loopMuons);
         else if (option == 2) GetMuonPtDistribution_JetIso(files[tr]);
-        else if (option == 3) GetMuonPtDistribution(files[tr],
-                                                    Nexp_evt_cut,Nexp_evt,option);
-        else if (option == 4) GetCutsOptimization(files[tr],optNbefore,
-                                                  optNafter,option);
         else {cout<<"Option "<<option<<" is invalid,quiting..."<<endl;abort();}
 
     }//loop over files
 
 
     //Print the results if needed according to study case
-    if (option == 1) printSummary_MuonPt(out, dir, Nexp_evt, Nexp_evt_cut);
-    else if (option == 3) printSummary_MuonPt(out, dir, Nexp_evt,Nexp_evt_cut);
-    else if (option == 4) printSummary_Optim(dir, optNbefore, optNafter,option);
+    if (option == 1 || option == 3) printSummary_MuonPt(out, dir, Nexp_evt, Nexp_evt_cut);
     else  {cout<<"Nothing to print for this study"<<endl;}
 
     //save histograms according to study case
