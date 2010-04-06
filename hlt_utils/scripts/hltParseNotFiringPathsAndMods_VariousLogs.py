@@ -29,11 +29,9 @@ def usage():
     print 'e.g.:  '+sys.argv[0]+' full.log\n'
     print "This script parses the HLT-Report and TrigReport"
     print "sections of the a group of log files obtained after running"
-    print "HLT with CMSSW.  It basically searches for"
-    print "those paths that didn't finish running and"
-    print "the modules that were not executed.  The first"
-    print "module appearing is always the one that caused"
-    print "the failure of the path."
+    print "HLT with CMSSW.  It basically displays the modules"
+    print "in each path, separating the ones that ran from"
+    print "the ones that never did."
 
 
 ###############################################################
@@ -95,7 +93,7 @@ def parse_TrigReport(inflist):
                     mycounter+=1
                     printPath = False
             if allPaths[k][1][m] > 0:
-                print allPaths[k][0][m]
+                print allPaths[k][0][m] +": "+str(allPaths[k][1][m])
             elif allPaths[k][1][m] == 0:
                 print "\t> "+ allPaths[k][0][m]
             
@@ -123,7 +121,7 @@ def parse_HLTReport(inflist):
             if (aux == 0):
                 saux3 = fline.find('Events total')
                 if (saux3!= -1):
-                    print "Total Events = "+fline.split()[4]
+                    print "Total Events in file "+str(line.rstrip())+" = "+fline.split()[4]
                 saux = fline.find('Modules in Path') 
                 if( saux != -1):
                     break
