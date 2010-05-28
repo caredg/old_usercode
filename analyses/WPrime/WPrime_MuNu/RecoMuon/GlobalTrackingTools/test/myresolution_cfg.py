@@ -36,7 +36,7 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 #process.load("RecoMuon.GlobalMuonProducer.tevMuons_cfi")
 process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(500) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2000) )
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
@@ -44,6 +44,7 @@ process.source = cms.Source("PoolSource",
     )
 )
 
+process.GlobalMuonRefitter.RefitDirection = cms.string('RinsideOut') 
 
 process.generalTracks1= cms.EDProducer("TevMuonProducer",
     process.MuonTrackLoaderForGLB,
@@ -105,6 +106,11 @@ process.generalTracks1.RefitterParameters.TrackerRecHitBuilder = cms.string('Wit
 process.generalTracksEve1.RefitterParameters.TrackerRecHitBuilder = cms.string('WithTrackAngle1')
 process.generalTracksOdd1.RefitterParameters.TrackerRecHitBuilder = cms.string('WithTrackAngle1')
 
+
+process.generalTracks1.RefitterParameters.RefitDirection = cms.string('RinsideOut') 
+process.generalTracksEve1.RefitterParameters.RefitDirection = cms.string('RinsideOut') 
+process.generalTracksOdd1.RefitterParameters.RefitDirection = cms.string('RinsideOut') 
+
 #the new refits:
 process.tevMuonsNew = process.generalTracks1.clone()
 process.tevMuonsNew.MuonCollectionLabel = cms.InputTag("globalMuons")
@@ -152,6 +158,8 @@ process.tevMuonsEveLh.RefitterParameters.StabStab = 121
 
 process.reFit = cms.Path(process.tevMuonsNew*process.tevMuonsNewNoJit+process.tevMuonsOddHh*process.tevMuonsEveHh+process.tevMuonsOddLh*process.tevMuonsEveLh)
 
+#process.reFit = cms.Path(process.tevMuonsNew*process.tevMuonsNewNoJit+process.tevMuonsOddLh*process.tevMuonsEveLh)
+
 
 
 process.o1 = cms.OutputModule("PoolOutputModule",
@@ -175,5 +183,12 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1
 #process.MessageLogger._categoryCanTalk('RecoMuon')
 #process.MessageLogger._categoryCanTalk('TrackTransformer')
 #process.MessageLogger._categoryCanTalk('TrackFitters')
-#process.MessageLogger._moduleCanTalk('tevTracksEve1')
+#process.MessageLogger._categoryCanTalk('SeedFromGenericPairOrTriplet')
+#process.MessageLogger._moduleCanTalk('tevMuonsNew')
+#process.MessageLogger._moduleCanTalk('tevMuonsNewNoJit')
+#process.MessageLogger._moduleCanTalk('tevMuonsOddHh')
+#process.MessageLogger._moduleCanTalk('tevMuonsEveHh')
+#process.MessageLogger._moduleCanTalk('tevMuonsOddLh')
+#process.MessageLogger._moduleCanTalk('tevMuonsEveLh')
+#process.MessageLogger._sequenceCanTalk('reFit')
 

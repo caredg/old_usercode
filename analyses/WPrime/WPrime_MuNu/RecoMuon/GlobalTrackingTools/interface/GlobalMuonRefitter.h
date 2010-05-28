@@ -25,6 +25,17 @@
 #include "DataFormats/DTRecHit/interface/DTRecHitCollection.h"
 #include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
 
+
+//for seed regeneration
+#include "TrackingTools/DetLayers/interface/NavigationDirection.h"
+#include "RecoTracker/TrackProducer/interface/TrackProducerBase.h"
+#include "RecoTracker/SpecialSeedGenerators/interface/SeedFromGenericPairOrTriplet.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateTransform.h"
+
+
 namespace edm {class Event;}
 namespace reco {class TransientTrack;}
 
@@ -70,13 +81,13 @@ class GlobalMuonRefitter {
     void setServices(const edm::EventSetup&);
 
     /// build combined trajectory from sta Track and tracker RecHits
-    std::vector<Trajectory> refit(const reco::Track& globalTrack, const int theMuonHitsOption) const;
+        std::vector<Trajectory> refit(const reco::Track& globalTrack, const int theMuonHitsOption) const;
 
     /// build combined trajectory from subset of sta Track and tracker RecHits
     std::vector<Trajectory> refit(const reco::Track& globalTrack,
 				  const reco::TransientTrack track,
 				  TransientTrackingRecHit::ConstRecHitContainer allRecHitsTemp,
-				  const int theMuonHitsOption) const;
+                                  const int theMuonHitsOption) const;
 
     /// refit the track with a new set of RecHits
     std::vector<Trajectory> transform(const reco::Track& newTrack,
@@ -92,7 +103,7 @@ class GlobalMuonRefitter {
 
   protected:
 
-    enum RefitDirection{insideOut,outsideIn,undetermined};
+    enum RefitDirection{RinsideOut,RoutsideIn,Rundetermined};
     
     /// check muon RecHits, calculate chamber occupancy and select hits to be used in the final fit
     void checkMuonHits(const reco::Track&, ConstRecHitContainer&, 

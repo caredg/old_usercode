@@ -67,6 +67,8 @@
 #include "TRandom3.h"
 
 
+
+
 using namespace std;
 using namespace edm;
 
@@ -90,16 +92,20 @@ GlobalMuonRefitter::GlobalMuonRefitter(const edm::ParameterSet& par,
 
   // Refit direction
   string refitDirectionName = par.getParameter<string>("RefitDirection");
+  //cout<<"refitDirectionName = "<<refitDirectionName<<endl;
+  
+  LogDebug(theCategory)<<"GloblaMuonRefitter constructor called"<<endl;
+  
 
-  if (refitDirectionName == "insideOut" ) theRefitDirection = insideOut;
-  else if (refitDirectionName == "outsideIn" ) theRefitDirection = outsideIn;
+  if (refitDirectionName == "RinsideOut" ) theRefitDirection = RinsideOut;
+  else if (refitDirectionName == "RoutsideIn" ) theRefitDirection = RoutsideIn;
   else 
     throw cms::Exception("TrackTransformer constructor") 
       <<"Wrong refit direction chosen in TrackTransformer ParameterSet"
       << "\n"
       << "Possible choices are:"
       << "\n"
-      << "RefitDirection = insideOut or RefitDirection = outsideIn";
+      << "RefitDirection = RinsideOut or RefitDirection = RoutsideIn";
   
   theFitterName = par.getParameter<string>("Fitter");  
   thePropagatorName = par.getParameter<string>("Propagator");
@@ -155,7 +161,7 @@ void GlobalMuonRefitter::setServices(const EventSetup& setup) {
 // build a combined tracker-muon trajectory
 //
 vector<Trajectory> GlobalMuonRefitter::refit(const reco::Track& globalTrack, 
-					     const int theMuonHitsOption) const {
+                                             const int theMuonHitsOption) const {
   LogTrace(theCategory) << " *** GlobalMuonRefitter *** option " << theMuonHitsOption << endl;
     
   ConstRecHitContainer allRecHitsTemp; // all muon rechits temp
@@ -163,16 +169,19 @@ vector<Trajectory> GlobalMuonRefitter::refit(const reco::Track& globalTrack,
   reco::TransientTrack track(globalTrack,&*(theService->magneticField()),theService->trackingGeometry());
   
   for (trackingRecHit_iterator hit = track.recHitsBegin(); hit != track.recHitsEnd(); ++hit)
-    if((*hit)->isValid())
-      if ( (*hit)->geographicalId().det() == DetId::Tracker )
-	allRecHitsTemp.push_back(theTrackerRecHitBuilder->build(&**hit));
-      else if ( (*hit)->geographicalId().det() == DetId::Muon ){
-	if( (*hit)->geographicalId().subdetId() == 3 && !theRPCInTheFit){
-	  LogTrace(theCategory) << "RPC Rec Hit discarged"; 
-	  continue;
-	}
-	allRecHitsTemp.push_back(theMuonRecHitBuilder->build(&**hit));
-      }
+      if((*hit)->isValid())
+          if ( (*hit)->geographicalId().det() == DetId::Tracker )
+              allRecHitsTemp.push_back(theTrackerRecHitBuilder->build(&**hit));
+          else if ( (*hit)->geographicalId().det() == DetId::Muon ){
+              if( (*hit)->geographicalId().subdetId() == 3 && !theRPCInTheFit){
+                  LogTrace(theCategory) << "RPC Rec Hit discarged"; 
+                  continue;
+              }
+              allRecHitsTemp.push_back(theMuonRecHitBuilder->build(&**hit));
+          }
+          
+  
+
   vector<Trajectory> refitted = refit(globalTrack,track,allRecHitsTemp,theMuonHitsOption);
   return refitted;
 }
@@ -183,7 +192,7 @@ vector<Trajectory> GlobalMuonRefitter::refit(const reco::Track& globalTrack,
 vector<Trajectory> GlobalMuonRefitter::refit(const reco::Track& globalTrack,
 					     const reco::TransientTrack track,
 					     TransientTrackingRecHit::ConstRecHitContainer allRecHitsTemp,
-					     const int theMuonHitsOption) const {
+                                             const int theMuonHitsOption) const {
 
   // MuonHitsOption: 0 - tracker only
   //                 1 - include all muon hits
@@ -201,6 +210,7 @@ vector<Trajectory> GlobalMuonRefitter::refit(const reco::Track& globalTrack,
    LogTrace(theCategory) << " Track momentum before refit: " << globalTrack.pt() << endl;
 
   LogTrace(theCategory) << " Hits size before : " << allRecHitsTemp.size() << endl;
+  printHits(allRecHitsTemp);
   allRecHits = getRidOfSelectStationHits(allRecHitsTemp);  
 
   //std::cout << " Hits size before : " << allRecHitsTemp.size() << endl;
@@ -213,13 +223,13 @@ vector<Trajectory> GlobalMuonRefitter::refit(const reco::Track& globalTrack,
     //std::cout << " Hits size after : " << allRecHits.size() << endl;
 
   //    printHits(allRecHits);
-  LogTrace(theCategory) << " Hits size: " << allRecHits.size() << endl;
+  LogTrace(theCategory) << " Hits size after: " << allRecHits.size() << endl;
 
   vector <Trajectory> outputTraj;
 
   if ((theMuonHitsOption == 1) || (theMuonHitsOption == 3)) {
     // refit the full track with all muon hits
-    vector <Trajectory> globalTraj = transform(globalTrack, track, allRecHits);
+      vector <Trajectory> globalTraj = transform(globalTrack, track, allRecHits);
 
     if (!globalTraj.size()) {
       LogTrace(theCategory) << "No trajectory from the TrackTransformer!" << endl;
@@ -500,15 +510,15 @@ GlobalMuonRefitter::checkRecHitsOrdering(const TransientTrackingRecHit::ConstRec
     double rFirst = (*frontHit)->globalPosition().mag();
     double rLast  = (*backHit) ->globalPosition().mag();
 
-    if(rFirst < rLast) return insideOut;
-    else if(rFirst > rLast) return outsideIn;
+    if(rFirst < rLast) return RinsideOut;
+    else if(rFirst > rLast) return RoutsideIn;
     else {
       LogError(theCategory) << "Impossible determine the rechits order" <<endl;
-      return undetermined;
+      return Rundetermined;
     }
   } else {
     LogError(theCategory) << "Impossible determine the rechits order" <<endl;
-    return undetermined;
+    return Rundetermined;
   }
 }
 
@@ -517,9 +527,11 @@ GlobalMuonRefitter::checkRecHitsOrdering(const TransientTrackingRecHit::ConstRec
 // Convert Tracks into Trajectories with a given set of hits
 //
 vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
-						 const reco::TransientTrack track,
-						 TransientTrackingRecHit::ConstRecHitContainer recHitsForReFit) const {
+                                                 const reco::TransientTrack track,
+                                                 TransientTrackingRecHit::ConstRecHitContainer recHitsForReFit) const {
 
+    LogDebug(theCategory) <<"Going into the transform fucntion"<<endl;
+    
   LogTrace(theCategory) << "GlobalMuonRefitter::transform: " << recHitsForReFit.size() << " hits:";
   printHits(recHitsForReFit);
 
@@ -530,7 +542,7 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
 
   LogTrace(theCategory) << "checkRecHitsOrdering() returned " << recHitsOrder
 			<< ", theRefitDirection is " << theRefitDirection
-			<< " (insideOut == " << insideOut << ", outsideIn == " << outsideIn << ")";
+			<< " (RinsideOut == " << RinsideOut << ", RoutsideIn == " << RoutsideIn << ")";
 
   // Reverse the order in the case of inconsistency between the fit direction and the rechit order
   if(theRefitDirection != recHitsOrder) reverse(recHitsForReFit.begin(),recHitsForReFit.end());
@@ -546,7 +558,7 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
   LogTrace(theCategory) << "order swapped? " << order_swapped;
 
   // Fill the starting state, depending on the ordering above.
-  if ((theRefitDirection == insideOut && !order_swapped) || (theRefitDirection == outsideIn && order_swapped)) {
+  if ((theRefitDirection == RinsideOut && !order_swapped) || (theRefitDirection == RoutsideIn && order_swapped)) {
     innerId   = newTrack.innerDetId();
     outerId   = newTrack.outerDetId();
     firstTSOS = track.innermostMeasurementState();
@@ -582,8 +594,8 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
 
   // These lines cause the code to ignore completely what was set
   // above, and force propDir for tracks from collisions!
-//  if(propDir == alongMomentum && theRefitDirection == outsideIn)  propDir=oppositeToMomentum;
-//  if(propDir == oppositeToMomentum && theRefitDirection == insideOut) propDir=alongMomentum;
+//  if(propDir == alongMomentum && theRefitDirection == RoutsideIn)  propDir=oppositeToMomentum;
+//  if(propDir == oppositeToMomentum && theRefitDirection == RinsideOut) propDir=alongMomentum;
 
   const TrajectoryStateOnSurface& tsosForDir = inner_is_first ? lastTSOS : firstTSOS;
   propDir = (tsosForDir.globalPosition().basicVector().dot(tsosForDir.globalMomentum().basicVector())>0) ? alongMomentum : oppositeToMomentum;
@@ -605,12 +617,12 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
     
     PropagationDirection propDir_ycount = alongMomentum;
     if (y_count > 0) {
-      if      (theRefitDirection == insideOut) propDir_ycount = oppositeToMomentum;
-      else if (theRefitDirection == outsideIn) propDir_ycount = alongMomentum;
+      if      (theRefitDirection == RinsideOut) propDir_ycount = oppositeToMomentum;
+      else if (theRefitDirection == RoutsideIn) propDir_ycount = alongMomentum;
     }
     else {
-      if      (theRefitDirection == insideOut) propDir_ycount = alongMomentum;
-      else if (theRefitDirection == outsideIn) propDir_ycount = oppositeToMomentum;
+      if      (theRefitDirection == RinsideOut) propDir_ycount = alongMomentum;
+      else if (theRefitDirection == RoutsideIn) propDir_ycount = oppositeToMomentum;
     }
     
     LogTrace(theCategory) << "y_count = " << y_count
@@ -624,7 +636,107 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
     }
   }
 
+
+  //
+  //declare and get stuff to be retrieved from ES
+  //
+  edm::ESHandle<MagneticField> theMF = theService->magneticField();
+  edm::ESHandle<TrackerGeometry> theG; 
+  theService->eventSetup().get<TrackerDigiGeometryRecord>().get(theG);
+  edm::ESHandle<Propagator> thePropagator = theService->propagator(thePropagatorName);
+  edm::ESHandle<Propagator> theRevPropagator = theService->propagator(thePropagatorName);
+  const TrackerGeometry* myG = theG.product();
+  const MagneticField* myMF = theMF.product();
+  const Propagator* myPropagator = thePropagator.product();
+  const Propagator* myRevPropagator = theRevPropagator.product();
+  //const Propagator* myRevPropagator = new
+  //Propagator(oppositeToMomentum);
+  //dummy vector of charges
+  vector<int> dummycharges;
+  
+  //Try to use the code to make a new seed from hits
+  SeedFromGenericPairOrTriplet seedhits(&*myMF,&*myG,&*theTrackerRecHitBuilder,&*myPropagator,&*myRevPropagator,dummycharges,false, 1000.);
+
+  //create the set of hits to be used
+  ConstRecHitContainer  newseedhits;
+  bool gotHitsForNewSeed = true;
+  newseedhits.clear();
+  LogTrace(theCategory) <<"recHitsForReFit.size() = "<<recHitsForReFit.size()<<endl;
+  
+  if (recHitsForReFit.size() >= 3){
+      int ihit = 0;
+      //get the first 3 hits but only if they are from the tracker
+      for (ConstRecHitContainer::const_iterator it = recHitsForReFit.begin(),
+               itend = recHitsForReFit.end();it!=itend;++it){
+          if ((*it)->geographicalId().det() == DetId::Tracker){
+              newseedhits.push_back(*it);
+              ++ihit;
+          }
+          else { 
+              LogDebug(theCategory) <<"\t\t\t\tThere were not enough tracker hits for a seed"
+                                    <<endl;
+              gotHitsForNewSeed = false; 
+          }
+          if(ihit > 2) break;
+             
+      }
+      LogTrace(theCategory)<<"Size of newseedhits is = "<<newseedhits.size()<<endl;
+      printHits(newseedhits);
+  }
+  else{
+      gotHitsForNewSeed = false;
+      LogDebug(theCategory) <<"$$$$$$$$$$$$ No new seed will be created, number of hits too low"<<endl;
+  }
+  SeedingHitSet newseedset(newseedhits);
+
+  //Get the Navigation direction (this is very annoying, I had to 
+  //rename the direction of propagation to avoid conflict)
+  NavigationDirection seedDir;
+
+  if (theRefitDirection == RinsideOut ) seedDir = insideOut;
+  else if (theRefitDirection == RoutsideIn ) seedDir = outsideIn;
+  else 
+      throw cms::Exception("RefitDirection problem") 
+          <<"Something went wrong with the NavigationDirection";
+
+  LogDebug(theCategory) <<"I am about to create a new seed out of air"<<endl;
+  
+
+  
   TrajectorySeed seed(garbage1,garbage2,propDir);
+
+  //create the new seed
+
+  TrajectorySeed* newseed = 0;
+  TrajectorySeed* newseedtemp = 0;
+
+  //if we got enough hits for creating a new seed, try to form it, otherwise
+  //quit trying
+  if (gotHitsForNewSeed){
+      newseedtemp = seedhits.seedFromTriplet(newseedset,propDir,
+                                             seedDir,theService->eventSetup(),-1);
+  }
+  else{
+      LogDebug(theCategory) <<"Abandon refit, could not get enough hits to make a new seed.  Return an empty trajectory vector"<<endl;
+      return vector<Trajectory>();
+  }
+  LogDebug(theCategory)  <<"Created the trajectory seed"<<endl;
+  
+  //check to see if we were able to recreate a seed if not, play with the
+  //jittering of the older seed
+  
+  if (newseedtemp!= 0){
+      newseed = newseedtemp;
+      LogDebug(theCategory) <<"I got my new seed :-) "<<endl;
+  }
+  else{
+        LogDebug(theCategory) <<"Abandon refit, the new seed is invalid.  Return an empty trajectory vector"<<endl;
+      return vector<Trajectory>();
+      //LogDebug(theCategory) <<"Couldn't create a brand new seed :( .... taking the original seed"<<endl;
+    //      newseed = &seed;
+  }
+
+  
 
   if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
     LogDebug(theCategory)<<"Propagation occured"<<endl;
@@ -637,22 +749,26 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
     }
   }
 
- /* 
-  cout << " GlobalMuonRefitter : theFitter " << propDir << endl;
-  cout << "                      First TSOS: " 
+
+  LogDebug(theCategory) <<"Passed the old firstTSOS"<<endl;
+  
+
+  
+  LogDebug(theCategory) << " Old GlobalMuonRefitter : theFitter " << propDir << endl;
+  LogDebug(theCategory) << "                      Old First TSOS: " 
        << firstTSOS.globalPosition() << "  p="
        << firstTSOS.globalMomentum() << " = "
        << firstTSOS.globalMomentum().mag() << endl;
        
-  cout << "                      Starting seed: "
+  LogDebug(theCategory) << "                      Starting original seed: "
        << " nHits= " << seed.nHits()
        << " tsos: "
        << seed.startingState().parameters().position() << "  p="
        << seed.startingState().parameters().momentum() << endl;
        
-  cout << "                      RecHits: "
+  LogDebug(theCategory) << "                      RecHits: "
        << recHitsForReFit.size() << endl;
-*/
+
 //
 // try and jitter this fraker
 //
@@ -662,13 +778,43 @@ TrajectoryStateOnSurface( const GlobalTrajectoryParameters& gp,
 	const SurfaceSide side = SurfaceSideDefinition::atCenterOfSurface);
 */
 
-	TrajectoryStateOnSurface badgerTSOS = scaleTSOS(firstTSOS, theStabScale); // jitters 
+  LogTrace(theCategory) << "                      Starting newseed: "
+       << " nHits= " << newseed->nHits()
+       << " tsos: "
+       << newseed->startingState().parameters().position() << "  p="
+       << newseed->startingState().parameters().momentum() << endl;
+
+  
+  TrajectoryStateOnSurface badgerTSOS;
+
+  if (newseedtemp != 0){
+      PTrajectoryStateOnDet ptbadgerTSOS = newseed->startingState();
+      LogDebug(theCategory) <<"got the newseed starting state successfully"<<endl;
+      
+      TrajectoryStateTransform mytrajsformer;
+      LogDebug(theCategory) <<"got my trajectory transformer"<<endl;
+      badgerTSOS = mytrajsformer.transientState(ptbadgerTSOS,newseedhits.front()->surface(),&*myMF);
+  }
+  else {
+      badgerTSOS = scaleTSOS(firstTSOS, theStabScale); // jitters 
+  }
+
+
+
+  LogDebug(theCategory) <<"TrajectoryStateOnSurface was created"<<endl;
+
+
 //	std::cout<<"about to go into the fitter"<<std::endl;
 //	std::cout<<"global
  
 //  vector<Trajectory> trajectories = theFitter->fit(seed,recHitsForReFit,firstTSOS);
-  vector<Trajectory> trajectories = theFitter->fit(seed,recHitsForReFit,badgerTSOS);
+  //vector<Trajectory> 
   
+  vector<Trajectory> trajectories = theFitter->fit(*newseed,recHitsForReFit,badgerTSOS);
+
+  LogDebug(theCategory) <<"I called the trajectory fitter"<<endl;
+
+
   if(trajectories.empty()){
     LogDebug(theCategory) << "No Track refitted!" << endl;
     return vector<Trajectory>();
@@ -769,6 +915,9 @@ GlobalMuonRefitter::ConstRecHitContainer GlobalMuonRefitter::getEvenOddLayers(Co
           if (subdetid == TID) iLayer = TIDDetId(id.rawId()).wheel();
           if (subdetid == TEC) iLayer = TECDetId(id.rawId()).wheel();
       }
+
+      LogTrace(theCategory)<<"GetEvenOddLayers: Tracker iLayer = "<<iLayer<<endl;
+      
       if (iLayer >= 0){
           if (getEven) {
               keepHit &= (iLayer%2==0);
