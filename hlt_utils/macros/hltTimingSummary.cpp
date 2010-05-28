@@ -9,6 +9,7 @@
 #include <TTree.h>
 #include <TBranch.h>
 #include <TSystem.h>
+#include <THStack.h>
 
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -453,9 +454,11 @@ void plotMany(std::vector< std::vector<TH1D*> > hvec,TCanvas* canvas, bool doPlo
     
     if (doPlot) {
       hvec.at(0).at(i)->Draw() ;
+      THStack *hs= new THStack("hs", "test");
       for (unsigned k=1; k<numCases; k++){
-	  hvec.at(k).at(i)->Draw("same") ; 
+	hs->Add(hvec.at(k).at(i));
       }
+      hs->Draw("same") ; 
       canvas->Update() ;
     }
   }
@@ -1252,8 +1255,8 @@ int main(int argc, char ** argv) {
   if( numberOfspecificTotalTime > 0){
     for (int k=0; k<numberOfspecificTotalTime; k++){
       char nameBuffer[1000], titleBuffer[1000];
-      sprintf(nameBuffer, "specificPathTimeSummary_from %6.0f msec to %6.0f msec", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
-      sprintf(titleBuffer, "Per event time for path from %6.0f msec to %6.0f msec", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
+      sprintf(nameBuffer, "specificPathTimeSummary_from_%.0f_ms_to_%.0f_ms", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
+      sprintf(titleBuffer, "Average path time for event with total time from %.0f ms to %.0f ms", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
       std::string name = nameBuffer;
       std::string title = titleBuffer;
       TH1D* specificPathTimeSummaryAtK = 
@@ -1415,8 +1418,8 @@ int main(int argc, char ** argv) {
     specificPathTime.push_back(pathTime);
     for (int k=0; k<numberOfspecificTotalTime; k++){
       char nameBuffer[1000], titleBuffer[1000];
-      sprintf(nameBuffer, "specificPathTime_from %6.0f msec to %6.0f msec", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
-      sprintf(titleBuffer, "Per event time for path from %6.0f msec to %6.0f msec", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
+      sprintf(nameBuffer, "specificPathTime_from_%.0f_ms_to_%.0f_ms", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
+      sprintf(titleBuffer, "Per event time for path from %.0f msec to %.0f msec", specificTotalTime.at(k).first, specificTotalTime.at(k).second);
       std::string name = nameBuffer;
       std::string title = titleBuffer;
       std::vector<TH1D*> specificPathTimeAtK = 
@@ -1556,8 +1559,8 @@ int main(int argc, char ** argv) {
 	specificPathTime.at(0).at(i)=pathTime.at(i);
 	for (int k=0; k<numberOfspecificTotalTime;k++) {
 	  if (1000.*eventTime.at(ievt)>specificTotalTime.at(k).first && 1000.*eventTime.at(ievt)<specificTotalTime.at(k).second) {
-	      specificPathTime.at(k+1).at(i)->SetFillColor(k+2);
-	      specificPathTime.at(k+1).at(i)->Fill(1000.*eventPathTime);
+	    specificPathTime.at(k+1).at(i)->SetFillColor(2+numberOfspecificTotalTime-(k+1));
+	    specificPathTime.at(k+1).at(i)->Fill(1000.*eventPathTime);
 	  }
 	}
       }
@@ -1617,7 +1620,7 @@ int main(int argc, char ** argv) {
     if (numberOfspecificTotalTime>0) {
       for (int k=0; k<numberOfspecificTotalTime; k++) {
 	if (specificPathTimeSummaryVector.at(k).at(i) > 0.) {
-	  specificPathTimeSummary.at(k)->SetLineColor(k+2);
+	  specificPathTimeSummary.at(k)->SetLineColor(2+numberOfspecificTotalTime-(k+1));
 	  specificPathTimeSummary.at(k)->Fill( double(i),
 					       (1000. * specificPathTimeSummaryVector.at(k).at(i)/double(n_specificEvts.at(k))) ) ;
 	} else {
@@ -1706,10 +1709,14 @@ int main(int argc, char ** argv) {
       if (slowEventSummaryVector.size() == 1) sumfile << " event " ;
       else sumfile << " events " ;
       sumfile << "took longer than " << totalTimeThreshold << " msec to run: " << std::endl ;
+      sumfile <<"(formatted for usage within the PoolSource module,i.e, Run:Event)"<<std::endl;
+      sumfile <<std::endl;
+      sumfile <<"eventsToProcess = cms.untracked.VEventRange("<<std::endl;
       for (unsigned int i=0; i<slowEventSummaryVector.size(); i++) {
-        sumfile << "Run: " << slowEventSummaryVector.at(i).first
-                << ", Event: " << slowEventSummaryVector.at(i).second << std::endl ;
+        sumfile <<"'"<< slowEventSummaryVector.at(i).first
+                << ":" << slowEventSummaryVector.at(i).second<<"'," << std::endl ;
       }
+      sumfile<< ")"<<std::endl;
       sumfile << std::endl ; 
     }
     
@@ -1718,10 +1725,14 @@ int main(int argc, char ** argv) {
       if (slowPathSummaryVector.size() == 1) sumfile << " event " ;
       else sumfile << " events " ;
       sumfile << "had at least one path that took more than " << totalTimeThreshold << " msec to run: " << std::endl ;
+      sumfile <<"(formatted for usage within the PoolSource module,i.e, Run:Event)"<<std::endl;
+      sumfile <<std::endl;
+      sumfile <<"eventsToProcess = cms.untracked.VEventRange("<<std::endl;
       for (unsigned int i=0; i<slowPathSummaryVector.size(); i++) {
-        sumfile << "Run: " << slowPathSummaryVector.at(i).first
-                << ", Event: " << slowPathSummaryVector.at(i).second << std::endl ;
+        sumfile << "'" << slowPathSummaryVector.at(i).first
+                << ":" << slowPathSummaryVector.at(i).second<<"'," << std::endl ;
       }
+      sumfile<< ")"<<std::endl;
       sumfile << std::endl ; 
     }
     
@@ -1730,10 +1741,14 @@ int main(int argc, char ** argv) {
       if (slowModuleSummaryVector.size() == 1) sumfile << " event " ;
       else sumfile << " events " ;
       sumfile << "had at least one module that took more than " << moduleTimeThreshold << " msec to run: " << std::endl ;
+      sumfile <<"(formatted for usage within the PoolSource module,i.e, Run:Event)"<<std::endl;
+      sumfile <<std::endl;
+      sumfile <<"eventsToProcess = cms.untracked.VEventRange("<<std::endl;
       for (unsigned int i=0; i<slowModuleSummaryVector.size(); i++) {
-        sumfile << "Run: " << slowModuleSummaryVector.at(i).first
-                << ", Event: " << slowModuleSummaryVector.at(i).second << std::endl ;
+        sumfile << "'" << slowModuleSummaryVector.at(i).first
+                << ":" << slowModuleSummaryVector.at(i).second<<"'" << std::endl ;
       }
+      sumfile<< ")"<<std::endl;
       sumfile << std::endl ; 
     }
     
