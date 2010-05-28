@@ -37,7 +37,7 @@ def usage():
     print '\n'
     print 'Usage: '+sys.argv[0]+' <tmin in msec> <tmax in msec> <optional HLT cfg file>'
     print 'e.g.:  '+sys.argv[0]+' 40 50 runHLT_cfg.py'
-    print 'NOTE: 0<tmin<tmax and both need to be integers'
+    print 'NOTE: 0<tmin<tmax and both need not be integers but 0 is not allowed (fixme later)'
     print 'the optional file is any config py file which is going to be'
     print 'expanded to just look at the events of interest'
 
@@ -135,9 +135,9 @@ def run_hltTimingSummary(tmin, outfile):
     #exists and issue a warning if not
     if not(os.path.isfile(exclusionfile)):
         print "WARNING! exclude.txt does not exist"
-
         
-    hltTS_command = "$CMSSW_BASE/test/$SCRAM_ARCH/hltTimingSummary -i "+ inrootfile +" -o "+ outfile + " -f -s -e "+ exclusionfile + " -t "+ totaltimehist_maxX + " -b "+ totaltimehist_bin + " -l " + tmin + " -p "+ pdfverbosity
+    hltTS_command = "$CMSSW_BASE/test/$SCRAM_ARCH/hltTimingSummary -i "+ inrootfile +" -o "+ outfile + " -f -c -s -e "+ exclusionfile + " -l " + tmin + " -p "+ pdfverbosity
+              
 
     if (DEBUG):
         print hltTS_command
@@ -239,7 +239,7 @@ def main():
         print tmax
 
     #check for crazy requirements
-    if (int(tmin)<0 or int(tmax)<0 or int(tmax)<int(tmin)):
+    if (float(tmin)<0 or float(tmax)<0 or float(tmax)<float(tmin)):
         usage()
         sys.exit(1)
 
