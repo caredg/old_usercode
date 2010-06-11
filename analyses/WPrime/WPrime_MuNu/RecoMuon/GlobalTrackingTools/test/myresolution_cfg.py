@@ -114,14 +114,15 @@ process.generalTracksOdd1.RefitterParameters.RefitDirection = cms.string('Rinsid
 #the new refits:
 process.tevMuonsNew = process.generalTracks1.clone()
 process.tevMuonsNew.MuonCollectionLabel = cms.InputTag("globalMuons")
-process.tevMuonsNew.RefitIndex = cms.vint32(2)
+process.tevMuonsNew.RefitIndex = cms.vint32(1)
 process.tevMuonsNew.RefitterParameters.StabStab = 0
-#nojitter
-process.tevMuonsNewNoJit = process.generalTracks1.clone()
-process.tevMuonsNewNoJit.MuonCollectionLabel = cms.InputTag("globalMuons")
-process.tevMuonsNewNoJit.RefitIndex = cms.vint32(2)
-process.tevMuonsNewNoJit.RefitterParameters.StabStab = 0
-process.tevMuonsNewNoJit.RefitterParameters.StabScale = 1
+process.tevMuonsNew.RefitterParameters.NewSeed = cms.untracked.bool(True)
+#no new seed
+process.tevMuonsNewNoSeed = process.generalTracks1.clone()
+process.tevMuonsNewNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
+process.tevMuonsNewNoSeed.RefitIndex = cms.vint32(1)
+process.tevMuonsNewNoSeed.RefitterParameters.StabStab = 0
+#process.tevMuonsNewNoSeed.RefitterParameters.StabScale = 1
 #with odd/even hits in the tracker and odd/even hits in the first
 #muon chamber with hits
 process.tevMuonsOddHh = process.generalTracksOdd1.clone()
@@ -132,6 +133,21 @@ process.tevMuonsOddHh.RefitIndex = cms.vint32(2)
 process.tevMuonsEveHh.RefitIndex = cms.vint32(2)
 process.tevMuonsOddHh.RefitterParameters.StabStab = 13
 process.tevMuonsEveHh.RefitterParameters.StabStab = 12
+process.tevMuonsEveHh.RefitterParameters.NewSeed = cms.untracked.bool(True)
+process.tevMuonsOddHh.RefitterParameters.NewSeed = cms.untracked.bool(True)
+
+#same as above but with no new seed just the jitter:
+process.tevMuonsOddHhNoSeed = process.generalTracksOdd1.clone()
+process.tevMuonsEveHhNoSeed = process.generalTracksEve1.clone()
+process.tevMuonsOddHhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
+process.tevMuonsEveHhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
+process.tevMuonsOddHhNoSeed.RefitIndex = cms.vint32(2)
+process.tevMuonsEveHhNoSeed.RefitIndex = cms.vint32(2)
+process.tevMuonsOddHhNoSeed.RefitterParameters.StabStab = 13
+process.tevMuonsEveHhNoSeed.RefitterParameters.StabStab = 12
+process.tevMuonsEveHhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
+process.tevMuonsOddHhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
+
 #with odd/even tracker layers and odd/even hits in first muon chamber
 #with hits
 process.tevMuonsOddLh= process.generalTracksOdd1.clone()
@@ -142,9 +158,20 @@ process.tevMuonsOddLh.RefitIndex = cms.vint32(2)
 process.tevMuonsEveLh.RefitIndex = cms.vint32(2)
 process.tevMuonsOddLh.RefitterParameters.StabStab = 131
 process.tevMuonsEveLh.RefitterParameters.StabStab = 121
+process.tevMuonsEveLh.RefitterParameters.NewSeed = cms.untracked.bool(True)
+process.tevMuonsOddLh.RefitterParameters.NewSeed = cms.untracked.bool(True)
 
-
-
+#same as above but with no new seed
+process.tevMuonsOddLhNoSeed= process.generalTracksOdd1.clone()
+process.tevMuonsEveLhNoSeed = process.generalTracksEve1.clone()
+process.tevMuonsOddLhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
+process.tevMuonsEveLhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
+process.tevMuonsOddLhNoSeed.RefitIndex = cms.vint32(2)
+process.tevMuonsEveLhNoSeed.RefitIndex = cms.vint32(2)
+process.tevMuonsOddLhNoSeed.RefitterParameters.StabStab = 131
+process.tevMuonsEveLhNoSeed.RefitterParameters.StabStab = 121
+process.tevMuonsEveLhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
+process.tevMuonsOddLhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
 
 
 
@@ -156,9 +183,11 @@ process.tevMuonsEveLh.RefitterParameters.StabStab = 121
 #	*process.globalTracks1*process.globalTracksEve1*process.globalTracksOdd1*process.tevTracksEve1*process.tevTracksOdd1)
 
 
-process.reFit = cms.Path(process.tevMuonsNew*process.tevMuonsNewNoJit+process.tevMuonsOddHh*process.tevMuonsEveHh+process.tevMuonsOddLh*process.tevMuonsEveLh)
+process.reFit = cms.Path(process.tevMuonsNew*process.tevMuonsNewNoSeed+process.tevMuonsOddHh*process.tevMuonsEveHh+process.tevMuonsOddHhNoSeed*process.tevMuonsEveHhNoSeed+process.tevMuonsOddLh*process.tevMuonsEveLh+process.tevMuonsOddLhNoSeed*process.tevMuonsEveLhNoSeed)
 
-#process.reFit = cms.Path(process.tevMuonsNew*process.tevMuonsNewNoJit+process.tevMuonsOddLh*process.tevMuonsEveLh)
+#process.reFit = cms.Path(process.tevMuonsNew+process.tevMuonsOddHh+process.tevMuonsEveHh)
+
+
 
 
 
@@ -190,5 +219,5 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1
 #process.MessageLogger._moduleCanTalk('tevMuonsEveHh')
 #process.MessageLogger._moduleCanTalk('tevMuonsOddLh')
 #process.MessageLogger._moduleCanTalk('tevMuonsEveLh')
-#process.MessageLogger._sequenceCanTalk('reFit')
+
 
