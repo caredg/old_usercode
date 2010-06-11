@@ -118,6 +118,7 @@ GlobalMuonRefitter::GlobalMuonRefitter(const edm::ParameterSet& par,
   theMuonRecHitBuilderName = par.getParameter<string>("MuonRecHitBuilder");
   theStab 		= par.getUntrackedParameter<int>("StabStab", 1);
   theStabScale 	= par.getUntrackedParameter<double>("StabScale", 1);
+  theNewSeed 	= par.getUntrackedParameter<bool>("NewSeed", false);
 
   theRPCInTheFit = par.getParameter<bool>("RefitRPCHits");
 
@@ -523,6 +524,154 @@ GlobalMuonRefitter::checkRecHitsOrdering(const TransientTrackingRecHit::ConstRec
 }
 
 
+//-----------------------------------------------------------------------
+TrajectoryStateOnSurface GlobalMuonRefitter::TSOSFromNewSeed(
+    TrajectorySeed* newseed,ConstRecHitContainer newseedtrackerhits,
+    const MagneticField* myMF
+    ) const
+{
+//-----------------------------------------------------------------------
+    LogDebug(theCategory)<< "==============Satarting the new TSOS sequence"<<endl;
+    TrajectoryStateOnSurface badgerTSOS = 0;
+      
+    PTrajectoryStateOnDet ptbadgerTSOS = newseed->startingState();
+    LogDebug(theCategory) <<"got the newseed starting state successfully"<<endl;
+    
+    TrajectoryStateTransform mytrajsformer;
+    LogDebug(theCategory) <<"got my trajectory transformer"<<endl;
+    badgerTSOS = mytrajsformer.transientState(ptbadgerTSOS,newseedtrackerhits.front()->surface(),&*myMF);
+    
+    LogDebug(theCategory) <<"TrajectoryStateOnSurface was created"<<endl;
+
+    return badgerTSOS;
+    
+}//------------------------------- TSOSFromNewSeed()
+
+
+
+
+//-----------------------------------------------------------------------
+TrajectorySeed* GlobalMuonRefitter::NewSeedFromPairOrTriplet(
+    TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit, 
+    PropagationDirection& propDir,ConstRecHitContainer& newseedtrackerhits 
+    ) const
+{
+//----------------------------------------------------------------------
+    LogDebug(theCategory)<< "==============Starting the New Seed sequence"<<endl; 
+
+   //my brand new seed
+    TrajectorySeed* newseed = 0;
+
+    //Get stuff needed from the event setup
+    edm::ESHandle<MagneticField> theMF = theService->magneticField();
+    edm::ESHandle<TrackerGeometry> theG; 
+    theService->eventSetup().get<TrackerDigiGeometryRecord>().get(theG);
+    edm::ESHandle<Propagator> thePropagator = theService->propagator(thePropagatorName);
+    edm::ESHandle<Propagator> theRevPropagator = theService->propagator(thePropagatorName);
+    const TrackerGeometry* myG = theG.product();
+    const MagneticField* myMF = theMF.product();
+    const Propagator* myPropagator = thePropagator.product();
+    const Propagator* myRevPropagator = theRevPropagator.product();
+    //dummy vector of charges
+    vector<int> dummycharges;
+    
+    //Try to use the code to make a new seed from hits
+    SeedFromGenericPairOrTriplet seedObjt(&*myMF,&*myG,&*theTrackerRecHitBuilder,&*myPropagator,&*myRevPropagator,dummycharges,false, 1000.);
+    
+    //Get the first 2 or 3 hits from the tracker to be used in
+    //the new seed
+    newseedtrackerhits.clear();
+    LogTrace(theCategory) <<"recHitsForReFit.size() = "
+                          <<recHitsForReFit.size()<<endl;
+    LogDebug(theCategory) << "=========About to get hits for my new seed"
+                          <<endl;
+    for (ConstRecHitContainer::const_iterator it = recHitsForReFit.begin(),
+             itend = recHitsForReFit.end();it!=itend;++it){
+        if ((*it)->geographicalId().det() == DetId::Muon){ 
+            LogDebug(theCategory) <<"Found a Muon hit for seed hits :("<<endl;
+        }
+        else if ((*it)->geographicalId().det() == DetId::Tracker){
+            LogDebug(theCategory) << "Found a Tracker hit for seed hits"<<endl;
+            newseedtrackerhits.push_back(*it);
+          }
+        else { 
+            LogDebug(theCategory) <<"WARNING: Neither tracker nor muon hit"
+                                  <<endl;
+        }
+        //break the lopp if max 3 hits from tracker were found
+        if (newseedtrackerhits.size() == 3) break;
+    }//------- loop over recHitsForReFit
+    
+    //if there are not enough tracker hits, return zero
+    if (newseedtrackerhits.size()<2){
+        LogTrace(theCategory)<<"Size of newseedtrackerhits is = "
+                             <<newseedtrackerhits.size()
+                             <<"; too few tracker hits to make a new seed"
+                             <<endl;
+        return newseed;
+    }
+    
+    LogTrace(theCategory)<<"Size of newseedtrackerhits is = "
+                         <<newseedtrackerhits.size()<<endl;
+    printHits(newseedtrackerhits);
+    
+    //make a new set of seeds for seed generation
+    SeedingHitSet newseedset(newseedtrackerhits);
+    //Get the Navigation direction (this is very annoying, I had to 
+    //rename the direction of propagation enum to avoid conflict)
+    NavigationDirection seedDir;
+    if (theRefitDirection == RinsideOut ) seedDir = insideOut;
+    else if (theRefitDirection == RoutsideIn ) seedDir = outsideIn;
+    else 
+        throw cms::Exception("RefitDirection problem") 
+            <<"Something went wrong with the NavigationDirection";
+    LogDebug(theCategory) <<"================ About to create a new seed"
+                          <<endl;
+    //try to create the new seed
+    std::vector<TrajectorySeed*> newseedvect = seedObjt.seed(newseedset,propDir,
+                            seedDir,theService->eventSetup());
+    if (newseedvect.empty()) {
+        LogDebug(theCategory) <<"No new seeds could be created"
+                              <<endl;
+        return newseed;
+    }
+    else{
+        LogDebug(theCategory) <<"newseedvect.size() = "
+                              <<newseedvect.size()<<endl;
+        newseed = newseedvect.front();
+    }
+    
+    
+    
+    //check if the trajectory seed was created successfully
+    if (newseed != 0){
+        LogDebug(theCategory) <<"New trajectory seed created successfully"
+                              <<endl;
+        //check the new seed information
+        LogTrace(theCategory) << "                      Starting newseed: "
+                              << " nHits= " << newseed->nHits()
+                              << " tsos: "
+                              << newseed->startingState().parameters().position() 
+                              << "  p="
+                              << newseed->startingState().parameters().momentum() 
+                              << endl;
+    
+    }
+    else{
+        LogDebug(theCategory) <<"Failed to create a good new trajectory seed"
+                              <<endl;
+        return newseed;
+    }
+   
+    return newseed;
+    
+
+}//--------------------NewSeedFromPairOrTriplet
+
+
+
+
+
 //
 // Convert Tracks into Trajectories with a given set of hits
 //
@@ -637,184 +786,57 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
   }
 
 
-  //
-  //declare and get stuff to be retrieved from ES
-  //
-  edm::ESHandle<MagneticField> theMF = theService->magneticField();
-  edm::ESHandle<TrackerGeometry> theG; 
-  theService->eventSetup().get<TrackerDigiGeometryRecord>().get(theG);
-  edm::ESHandle<Propagator> thePropagator = theService->propagator(thePropagatorName);
-  edm::ESHandle<Propagator> theRevPropagator = theService->propagator(thePropagatorName);
-  const TrackerGeometry* myG = theG.product();
-  const MagneticField* myMF = theMF.product();
-  const Propagator* myPropagator = thePropagator.product();
-  const Propagator* myRevPropagator = theRevPropagator.product();
-  //const Propagator* myRevPropagator = new
-  //Propagator(oppositeToMomentum);
-  //dummy vector of charges
-  vector<int> dummycharges;
-  
-  //Try to use the code to make a new seed from hits
-  SeedFromGenericPairOrTriplet seedhits(&*myMF,&*myG,&*theTrackerRecHitBuilder,&*myPropagator,&*myRevPropagator,dummycharges,false, 1000.);
-
-  //create the set of hits to be used
-  ConstRecHitContainer  newseedhits;
-  bool gotHitsForNewSeed = true;
-  newseedhits.clear();
-  LogTrace(theCategory) <<"recHitsForReFit.size() = "<<recHitsForReFit.size()<<endl;
-  
-  if (recHitsForReFit.size() >= 3){
-      int ihit = 0;
-      //get the first 3 hits but only if they are from the tracker
-      for (ConstRecHitContainer::const_iterator it = recHitsForReFit.begin(),
-               itend = recHitsForReFit.end();it!=itend;++it){
-          if ((*it)->geographicalId().det() == DetId::Tracker){
-              newseedhits.push_back(*it);
-              ++ihit;
-          }
-          else { 
-              LogDebug(theCategory) <<"\t\t\t\tThere were not enough tracker hits for a seed"
-                                    <<endl;
-              gotHitsForNewSeed = false; 
-          }
-          if(ihit > 2) break;
-             
-      }
-      LogTrace(theCategory)<<"Size of newseedhits is = "<<newseedhits.size()<<endl;
-      printHits(newseedhits);
-  }
-  else{
-      gotHitsForNewSeed = false;
-      LogDebug(theCategory) <<"$$$$$$$$$$$$ No new seed will be created, number of hits too low"<<endl;
-  }
-  SeedingHitSet newseedset(newseedhits);
-
-  //Get the Navigation direction (this is very annoying, I had to 
-  //rename the direction of propagation to avoid conflict)
-  NavigationDirection seedDir;
-
-  if (theRefitDirection == RinsideOut ) seedDir = insideOut;
-  else if (theRefitDirection == RoutsideIn ) seedDir = outsideIn;
-  else 
-      throw cms::Exception("RefitDirection problem") 
-          <<"Something went wrong with the NavigationDirection";
-
-  LogDebug(theCategory) <<"I am about to create a new seed out of air"<<endl;
-  
-
-  
   TrajectorySeed seed(garbage1,garbage2,propDir);
-
-  //create the new seed
-
-  TrajectorySeed* newseed = 0;
-  TrajectorySeed* newseedtemp = 0;
-
-  //if we got enough hits for creating a new seed, try to form it, otherwise
-  //quit trying
-  if (gotHitsForNewSeed){
-      newseedtemp = seedhits.seedFromTriplet(newseedset,propDir,
-                                             seedDir,theService->eventSetup(),-1);
-  }
+  ConstRecHitContainer newseedtrackerhits; 
+  TrajectorySeed* newseed = 0 ;
+  vector<Trajectory> trajectories;
+  TrajectoryStateOnSurface badgerTSOS = 0; 
+  //regenerate the seed only if requested, otherwise do the usual thing
+  if(theNewSeed){
+      newseed= NewSeedFromPairOrTriplet(recHitsForReFit,propDir,newseedtrackerhits);
+      //If the new seed was created, try to extract the TSOS
+      if (newseed != 0) {
+          badgerTSOS = 
+              TSOSFromNewSeed(newseed,newseedtrackerhits,&*theService->magneticField().product());
+      }  
+      else{
+          LogDebug(theCategory) <<"There is no new seed or it is invalid"
+                                <<endl;
+          return vector<Trajectory>();
+      }
+  }//-----if theNewSeed
   else{
-      LogDebug(theCategory) <<"Abandon refit, could not get enough hits to make a new seed.  Return an empty trajectory vector"<<endl;
-      return vector<Trajectory>();
-  }
-  LogDebug(theCategory)  <<"Created the trajectory seed"<<endl;
-  
-  //check to see if we were able to recreate a seed if not, play with the
-  //jittering of the older seed
-  
-  if (newseedtemp!= 0){
-      newseed = newseedtemp;
-      LogDebug(theCategory) <<"I got my new seed :-) "<<endl;
-  }
-  else{
-        LogDebug(theCategory) <<"Abandon refit, the new seed is invalid.  Return an empty trajectory vector"<<endl;
-      return vector<Trajectory>();
-      //LogDebug(theCategory) <<"Couldn't create a brand new seed :( .... taking the original seed"<<endl;
-    //      newseed = &seed;
-  }
-
-  
-
-  if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
-    LogDebug(theCategory)<<"Propagation occured"<<endl;
-    LogTrace(theCategory) << "propagating firstTSOS at " << firstTSOS.globalPosition()
-			  << " to first rechit with surface pos " << recHitsForReFit.front()->det()->surface().toGlobal(LocalPoint(0,0,0));
-    firstTSOS = theService->propagator(thePropagatorName)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
-    if(!firstTSOS.isValid()){
+      newseed = &seed;
+      if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
+          LogDebug(theCategory)<<"Propagation occured"<<endl;
+          LogTrace(theCategory) << "propagating firstTSOS at " << firstTSOS.globalPosition()
+                                << " to first rechit with surface pos " << recHitsForReFit.front()->det()->surface().toGlobal(LocalPoint(0,0,0));
+          firstTSOS = theService->propagator(thePropagatorName)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
+          if(!firstTSOS.isValid()){
       LogDebug(theCategory)<<"Propagation error!"<<endl;
       return vector<Trajectory>();
-    }
-  }
+          }
+      }
 
-
-  LogDebug(theCategory) <<"Passed the old firstTSOS"<<endl;
-  
-
-  
-  LogDebug(theCategory) << " Old GlobalMuonRefitter : theFitter " << propDir << endl;
-  LogDebug(theCategory) << "                      Old First TSOS: " 
-       << firstTSOS.globalPosition() << "  p="
-       << firstTSOS.globalMomentum() << " = "
-       << firstTSOS.globalMomentum().mag() << endl;
-       
-  LogDebug(theCategory) << "                      Starting original seed: "
-       << " nHits= " << seed.nHits()
-       << " tsos: "
-       << seed.startingState().parameters().position() << "  p="
-       << seed.startingState().parameters().momentum() << endl;
-       
-  LogDebug(theCategory) << "                      RecHits: "
-       << recHitsForReFit.size() << endl;
-
-//
-// try and jitter this fraker
-//
-/*
-TrajectoryStateOnSurface( const GlobalTrajectoryParameters& gp,
-	const Surface& aSurface,
-	const SurfaceSide side = SurfaceSideDefinition::atCenterOfSurface);
-*/
-
-  LogTrace(theCategory) << "                      Starting newseed: "
-       << " nHits= " << newseed->nHits()
-       << " tsos: "
-       << newseed->startingState().parameters().position() << "  p="
-       << newseed->startingState().parameters().momentum() << endl;
-
-  
-  TrajectoryStateOnSurface badgerTSOS;
-
-  if (newseedtemp != 0){
-      PTrajectoryStateOnDet ptbadgerTSOS = newseed->startingState();
-      LogDebug(theCategory) <<"got the newseed starting state successfully"<<endl;
+      LogDebug(theCategory) <<"Passed the old firstTSOS"<<endl;
       
-      TrajectoryStateTransform mytrajsformer;
-      LogDebug(theCategory) <<"got my trajectory transformer"<<endl;
-      badgerTSOS = mytrajsformer.transientState(ptbadgerTSOS,newseedhits.front()->surface(),&*myMF);
-  }
-  else {
-      badgerTSOS = scaleTSOS(firstTSOS, theStabScale); // jitters 
-  }
+      LogDebug(theCategory) << " Old GlobalMuonRefitter : theFitter " 
+                            << propDir << endl;
+      LogDebug(theCategory) << "                      Old First TSOS: " 
+       << firstTSOS.globalPosition() << "  p="
+                            << firstTSOS.globalMomentum() << " = "
+                            << firstTSOS.globalMomentum().mag() << endl;
+      
+      badgerTSOS = scaleTSOS(firstTSOS, theStabScale);
+      //badgerTSOS = firstTSOS;
 
+  }//----------else if theNewSeed
 
-
-  LogDebug(theCategory) <<"TrajectoryStateOnSurface was created"<<endl;
-
-
-//	std::cout<<"about to go into the fitter"<<std::endl;
-//	std::cout<<"global
- 
-//  vector<Trajectory> trajectories = theFitter->fit(seed,recHitsForReFit,firstTSOS);
-  //vector<Trajectory> 
+  //build the trajectory 
+  trajectories = theFitter->fit(*newseed,recHitsForReFit,badgerTSOS);
+  LogDebug(theCategory) <<"Trajectory fitter called successfully"<<endl;
   
-  vector<Trajectory> trajectories = theFitter->fit(*newseed,recHitsForReFit,badgerTSOS);
-
-  LogDebug(theCategory) <<"I called the trajectory fitter"<<endl;
-
-
+  
   if(trajectories.empty()){
     LogDebug(theCategory) << "No Track refitted!" << endl;
     return vector<Trajectory>();

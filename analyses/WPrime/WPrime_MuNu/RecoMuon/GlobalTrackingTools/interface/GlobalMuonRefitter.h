@@ -99,6 +99,15 @@ class GlobalMuonRefitter {
 	ConstRecHitContainer getEvenOddHits(ConstRecHitContainer hits, bool const getEven) const;
 	ConstRecHitContainer getEvenOddLayers(ConstRecHitContainer hits, bool const getEven) const;
 	TrajectoryStateOnSurface scaleTSOS(TrajectoryStateOnSurface tsosIn, double const scale) const;
+    //additional to create new seeds
+    TrajectoryStateOnSurface TSOSFromNewSeed(
+    TrajectorySeed* newseed,ConstRecHitContainer newseedtrackerhits,
+    const MagneticField* myMF) const;
+    TrajectorySeed* NewSeedFromPairOrTriplet(
+        TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit, 
+        PropagationDirection& propDir,ConstRecHitContainer& newseedtrackerhits 
+        ) const;
+    
 
 
   protected:
@@ -142,6 +151,8 @@ class GlobalMuonRefitter {
     bool  theCosmicFlag;
 	int   theStab;
 	double theStabScale;
+    bool theNewSeed;
+    
 
 
     edm::InputTag theDTRecHitLabel;
