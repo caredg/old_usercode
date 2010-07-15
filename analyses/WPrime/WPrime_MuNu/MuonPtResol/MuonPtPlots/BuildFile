@@ -1,0 +1,19 @@
+<use name=FWCore/Framework>
+<use name=FWCore/PluginManager>
+<use name=FWCore/ParameterSet>
+<use name=DataFormats/TrackReco>
+<use name=TrackingTools/TransientTrack>
+<use name=DataFormats/TrajectorySeed>
+<use name=DataFormats/MuonReco>
+<use name="root">
+<flags EDM_PLUGIN=1>
+<export>
+   <lib name=MuonPtResolMuonPtPlots>
+   <use name=FWCore/Framework>
+   <use name=FWCore/PluginManager>
+   <use name=FWCore/ParameterSet>
+   <use name=DataFormats/TrackReco>
+   <use name=TrackingTools/TransientTrack>
+   <use name=DataFormats/TrajectorySeed>
+   <use name=DataFormats/MuonReco>
+</export>
