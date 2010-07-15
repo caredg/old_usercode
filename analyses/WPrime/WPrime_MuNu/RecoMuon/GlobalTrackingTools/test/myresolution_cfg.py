@@ -13,7 +13,7 @@ from RecoTracker.TrackProducer.TrackRefitterP5_cfi import TrackRefitterP5
 
 #process.load("Alignment.CommonAlignmentProducer.GlobalPosition_Fake_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-process.GlobalTag.globaltag = 'MC_3XY_V9A::All'
+process.GlobalTag.globaltag = 'MC_36Y_V10::All'
 
 process.load("Configuration.EventContent.EventContent_cff")
 process.load("Configuration.StandardSequences.Generator_cff")
@@ -36,12 +36,15 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 #process.load("RecoMuon.GlobalMuonProducer.tevMuons_cfi")
 process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(300) )
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-    'file:/localdata/ecarrera/analyses/wprime_to_munu/trackPt_resolution/singleMu_data/singleMuPt100/0AB2FE6B-2DE4-DE11-9E2C-0018F3D0969C.root'
-    )
+    #'file:/localdata/ecarrera/analyses/wprime_to_munu/trackPt_resolution/singleMu_data/singleMuPt100/0AB2FE6B-2DE4-DE11-9E2C-0018F3D0969C.root'
+     'file:/localdata/ecarrera/analyses/wprime_to_munu/muonPtResolution/singleMu_data_363p1/SingleMuon_RECO_500_MC_36Y_V10_6000evts.root' 
+    ),
+                            duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
+
 )
 
 process.GlobalMuonRefitter.RefitDirection = cms.string('RinsideOut') 
@@ -112,17 +115,21 @@ process.generalTracksEve1.RefitterParameters.RefitDirection = cms.string('Rinsid
 process.generalTracksOdd1.RefitterParameters.RefitDirection = cms.string('RinsideOut') 
 
 #the new refits:
+
+#use default seeding (defseed)
 process.tevMuonsNew = process.generalTracks1.clone()
 process.tevMuonsNew.MuonCollectionLabel = cms.InputTag("globalMuons")
 process.tevMuonsNew.RefitIndex = cms.vint32(1)
 process.tevMuonsNew.RefitterParameters.StabStab = 0
-process.tevMuonsNew.RefitterParameters.NewSeed = cms.untracked.bool(True)
-#no new seed
-process.tevMuonsNewNoSeed = process.generalTracks1.clone()
-process.tevMuonsNewNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
-process.tevMuonsNewNoSeed.RefitIndex = cms.vint32(1)
-process.tevMuonsNewNoSeed.RefitterParameters.StabStab = 0
-#process.tevMuonsNewNoSeed.RefitterParameters.StabScale = 1
+process.tevMuonsNew.RefitterParameters.NewSeed = cms.untracked.string("defseed")
+#use other seeding (altseed)
+process.tevMuonsAltNew = process.generalTracks1.clone()
+process.tevMuonsAltNew.MuonCollectionLabel = cms.InputTag("globalMuons")
+process.tevMuonsAltNew.RefitIndex = cms.vint32(1)
+process.tevMuonsAltNew.RefitterParameters.StabStab = 0
+process.tevMuonsAltNew.RefitterParameters.NewSeed = cms.untracked.string("altseed")
+
+
 #with odd/even hits in the tracker and odd/even hits in the first
 #muon chamber with hits
 process.tevMuonsOddHh = process.generalTracksOdd1.clone()
@@ -135,18 +142,6 @@ process.tevMuonsOddHh.RefitterParameters.StabStab = 13
 process.tevMuonsEveHh.RefitterParameters.StabStab = 12
 process.tevMuonsEveHh.RefitterParameters.NewSeed = cms.untracked.bool(True)
 process.tevMuonsOddHh.RefitterParameters.NewSeed = cms.untracked.bool(True)
-
-#same as above but with no new seed just the jitter:
-process.tevMuonsOddHhNoSeed = process.generalTracksOdd1.clone()
-process.tevMuonsEveHhNoSeed = process.generalTracksEve1.clone()
-process.tevMuonsOddHhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
-process.tevMuonsEveHhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
-process.tevMuonsOddHhNoSeed.RefitIndex = cms.vint32(2)
-process.tevMuonsEveHhNoSeed.RefitIndex = cms.vint32(2)
-process.tevMuonsOddHhNoSeed.RefitterParameters.StabStab = 13
-process.tevMuonsEveHhNoSeed.RefitterParameters.StabStab = 12
-process.tevMuonsEveHhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
-process.tevMuonsOddHhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
 
 #with odd/even tracker layers and odd/even hits in first muon chamber
 #with hits
@@ -161,17 +156,7 @@ process.tevMuonsEveLh.RefitterParameters.StabStab = 121
 process.tevMuonsEveLh.RefitterParameters.NewSeed = cms.untracked.bool(True)
 process.tevMuonsOddLh.RefitterParameters.NewSeed = cms.untracked.bool(True)
 
-#same as above but with no new seed
-process.tevMuonsOddLhNoSeed= process.generalTracksOdd1.clone()
-process.tevMuonsEveLhNoSeed = process.generalTracksEve1.clone()
-process.tevMuonsOddLhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
-process.tevMuonsEveLhNoSeed.MuonCollectionLabel = cms.InputTag("globalMuons")
-process.tevMuonsOddLhNoSeed.RefitIndex = cms.vint32(2)
-process.tevMuonsEveLhNoSeed.RefitIndex = cms.vint32(2)
-process.tevMuonsOddLhNoSeed.RefitterParameters.StabStab = 131
-process.tevMuonsEveLhNoSeed.RefitterParameters.StabStab = 121
-process.tevMuonsEveLhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
-process.tevMuonsOddLhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(False)
+
 
 
 
@@ -183,9 +168,11 @@ process.tevMuonsOddLhNoSeed.RefitterParameters.NewSeed = cms.untracked.bool(Fals
 #	*process.globalTracks1*process.globalTracksEve1*process.globalTracksOdd1*process.tevTracksEve1*process.tevTracksOdd1)
 
 
-process.reFit = cms.Path(process.tevMuonsNew*process.tevMuonsNewNoSeed+process.tevMuonsOddHh*process.tevMuonsEveHh+process.tevMuonsOddHhNoSeed*process.tevMuonsEveHhNoSeed+process.tevMuonsOddLh*process.tevMuonsEveLh+process.tevMuonsOddLhNoSeed*process.tevMuonsEveLhNoSeed)
+#process.reFit = cms.Path(process.tevMuonsNew*process.tevMuonsNewNoJit+process.tevMuonsOddHh*process.tevMuonsEveHh+process.tevMuonsOddLh*process.tevMuonsEveLh)
 
 #process.reFit = cms.Path(process.tevMuonsNew+process.tevMuonsOddHh+process.tevMuonsEveHh)
+
+process.reFit = cms.Path(process.tevMuonsNew+process.tevMuonsAltNew+process.tevMuonsOddHh+process.tevMuonsEveHh)
 
 
 

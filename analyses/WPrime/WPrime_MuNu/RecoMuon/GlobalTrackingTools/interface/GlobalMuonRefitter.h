@@ -4,8 +4,8 @@
 /** \class GlobalMuonRefitter
  *  class to build muon trajectory
  *
- *  $Date: 2009/09/04 19:47:19 $
- *  $Revision: 1.7 $
+ *  $Date: 2010/02/20 21:01:05 $
+ *  $Revision: 1.8 $
  *
  *  \author N. Neumeister 	 Purdue University
  *  \author C. Liu 		 Purdue University
@@ -15,7 +15,7 @@
 #include "DataFormats/Common/interface/Handle.h"
 
 #include "FWCore/Framework/interface/ESHandle.h"
-#include "FWCore/ParameterSet/interface/InputTag.h"
+#include "FWCore/Utilities/interface/InputTag.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
@@ -34,6 +34,10 @@
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "TrackingTools/GeomPropagators/interface/Propagator.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateTransform.h"
+#include "RecoTracker/TkSeedGenerator/interface/SeedFromConsecutiveHitsCreator.h"
+#include "RecoTracker/TkTrackingRegions/interface/TrackingRegion.h"
+#include "RecoTracker/TkSeedingLayers/interface/SeedingHitSet.h"
+#include "RecoTracker/TkTrackingRegions/interface/GlobalTrackingRegion.h" 
 
 
 namespace edm {class Event;}
@@ -107,6 +111,10 @@ class GlobalMuonRefitter {
         TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit, 
         PropagationDirection& propDir,ConstRecHitContainer& newseedtrackerhits 
         ) const;
+    const TrajectorySeed* NewSeedFromConsecutiveHitsCreator(
+    TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit, 
+    const reco::Track& newTrack, ConstRecHitContainer& newseedtrackerhits 
+        ) const;
     
 
 
@@ -151,7 +159,7 @@ class GlobalMuonRefitter {
     bool  theCosmicFlag;
 	int   theStab;
 	double theStabScale;
-    bool theNewSeed;
+    std::string theNewSeed;
     
 
 
