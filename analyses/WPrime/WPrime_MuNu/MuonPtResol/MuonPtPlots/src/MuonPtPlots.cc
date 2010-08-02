@@ -49,24 +49,21 @@
 
 #include <cmath>
 #include "TMath.h"
-
+#include "TROOT.h"
 #include <vector>
 #include <string>
 #include "TFile.h"
+#include "TObject.h"
 #include "TH1F.h"
 #include "TTree.h"
 #include <stdlib.h>
-#include <string.h>
-
-//gen pt
-float genpt = 500;
-//track maps
-const reco::TrackToTrackMap * tevMap;
-const reco::TrackToTrackMap * tevMap_new;
-const reco::TrackToTrackMap * tevMap_anew;
+#include <iostream>
+#include <fstream>
+//Names
+#include <sstream>
 
 
-
+using namespace std;
 //
 // class declaration
 //
@@ -82,22 +79,64 @@ private:
     virtual void beginJob() ;
     virtual void analyze(const edm::Event&, const edm::EventSetup&);
     virtual void endJob() ;
-    float FindPtValueInTrackMap(const reco::MuonRef& muRef,const reco::TrackToTrackMap* trkMap);
+    reco::Track  FindTrackInTrackMap(const reco::MuonRef& muRef,const reco::TrackToTrackMap* trkMap, bool& isValid);
 
+    //track maps
+    const reco::TrackToTrackMap * Maptev;
+    const reco::TrackToTrackMap * Mapanew;
+    const reco::TrackToTrackMap * Mapeve;
+    const reco::TrackToTrackMap * Mapodd;
+
+    string filename;
+    float genpt;
       // ----------member data ---------------------------
-     edm::InputTag theGLBMuonLabel;
     TFile *hfile;
-    //TTree *mytree;
-    TH1F* hresol;
-    TH1F* hresol_anew;
-    TH1F* hresol_new;
+    TTree *mytree;
+    int run;
+    int evt;
+    int ls;
+    
+    int nmu;
+
+
+    bool tevvalid[200];
+    float tevpt[200];
+    float tevipt[200];
+    int tevhits[200];
+    float tevres[200];
+
+    bool anewvalid[200];
+    float anewpt[200];
+    float anewipt[200];
+    int anewhits[200];
+    float anewres[200];
+
+    bool oddvalid[200];
+    float oddpt[200];
+    float oddipt[200];
+    int oddhits[200];
+    float oddres[200];
+
+    bool evevalid[200];
+    float evept[200];
+    float eveipt[200];
+    int evehits[200];
+    float everes[200];
+
+    float mres[200];
+
+    
+
+
 };
+
+
 
 //
 // constants, enums and typedefs
 //
+//class to host information for track 
 
-//
 // static data member definitions
 //
 
@@ -108,7 +147,8 @@ MuonPtPlots::MuonPtPlots(const edm::ParameterSet& iConfig)
 
 {
    //now do what ever initialization is needed
-
+    genpt = iConfig.getParameter<double>("MuonPt");
+    filename = iConfig.getParameter<string>("FileName");
 }
 
 
@@ -133,48 +173,77 @@ MuonPtPlots::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    //Handle declarations
    Handle<reco::MuonCollection> Hmu;
-   Handle<reco::TrackToTrackMap> Htevm,Htevnewm,Htevanewm;
+   Handle<reco::TrackToTrackMap> Htevm,Hanewm,Hevem,Hoddm;
 
    //Get the original muon collection
    iEvent.getByLabel("muons",Hmu);
    //Get the collections and the products for the refitted ones
    iEvent.getByLabel("tevMuons","firstHit", Htevm);
-   tevMap = Htevm.product();
-   iEvent.getByLabel("tevMuonsNew","refit1", Htevnewm);
-   tevMap_new = Htevnewm.product();
-   iEvent.getByLabel("tevMuonsAltNew", "refit1", Htevanewm);
-   tevMap_anew = Htevanewm.product();
+   Maptev = Htevm.product();
+   iEvent.getByLabel("tevMuonsAltNew", "refit1", Hanewm);
+   Mapanew = Hanewm.product();
+   iEvent.getByLabel("tevMuonsOddHh","odd", Hoddm);
+   Mapodd = Hoddm.product();
+   iEvent.getByLabel("tevMuonsEveHh","eve", Hevem);
+   Mapeve = Hevem.product();
 
-   
+   //get event information
+   run = iEvent.id().run();
+   evt = iEvent.id().event();
+   ls = iEvent.id().luminosityBlock();
+
    //Loop over muon collection but take only global muons
-   for (unsigned it = 0; it!= Hmu->size(); ++it){
+   nmu = Hmu->size();
+   for (int  it = 0; it!= nmu; ++it){
        reco::MuonRef muRef(Hmu,it);
+       bool isTrackValid = false;
        if(!(muRef->isGlobalMuon())) continue;
-       float tev_pt = FindPtValueInTrackMap(muRef,tevMap);;
-       float tevnew_pt = FindPtValueInTrackMap(muRef,tevMap_new);
-       float tevanew_pt = FindPtValueInTrackMap(muRef,tevMap_anew);
 
-       //make resolution plot
-       if (tev_pt!=9999) {
-           hresol->Fill(genpt*((1/tev_pt) - (1/genpt)));
-           FillXYplot(hxy,muRef,tevMap);
-       }
-       if (tevanew_pt!=9999) {
-           hresol_anew->Fill(genpt*((1/tevanew_pt) - (1/genpt)));
-           FillXYplot(hxy_anew,muRef,tevMap);
-       }
-       else{
-           FillXYplot(hxy_anew_rej,muRef,tevMap);
-       }
-       if (tevnew_pt!=9999) {
-           hresol_new->Fill(genpt*((1/tevnew_pt) - (1/genpt)));
-           FillXYplot(hxy_new,muRef,tevMap);
-       }
-       else{
-           FillXYplot(hxy_new_rej,muRef,tevMap);
-       }
-       
+       reco::Track Trktev = FindTrackInTrackMap(muRef,Maptev,isTrackValid);
+       if(isTrackValid){
+           tevvalid[it] = true;
+           tevpt[it] = Trktev.pt();
+           tevipt[it] = 1/tevpt[it];
+           tevhits[it] = Trktev.recHitsSize();
+           tevres[it] = genpt*(tevipt[it] - 1/genpt); 
+       } else {tevvalid[it] = false;}
+
+
+       reco::Track Trkanew = FindTrackInTrackMap(muRef,Mapanew,isTrackValid);
+       if(isTrackValid){
+           anewvalid[it] = true;
+           anewpt[it] = Trkanew.pt();
+           anewipt[it] = 1/anewpt[it];
+           anewhits[it] = Trkanew.recHitsSize();
+           anewres[it] = genpt*(anewipt[it] - 1/genpt); 
+       } else {anewvalid[it] = false;}
+
+
+       reco::Track Trkodd = FindTrackInTrackMap(muRef,Mapodd,isTrackValid);
+       if(isTrackValid){
+           oddvalid[it] = true;
+           oddpt[it] = Trkodd.pt();
+           oddipt[it] = 1/oddpt[it];
+           oddhits[it] = Trkodd.recHitsSize();
+           oddres[it] = genpt*(oddipt[it] - 1/genpt); 
+       } else {oddvalid[it] = false;}
+
+
+       reco::Track Trkeve = FindTrackInTrackMap(muRef,Mapeve,isTrackValid);
+       if(isTrackValid){
+           evevalid[it] = true;
+           evept[it] = Trkeve.pt();
+           eveipt[it] = 1/evept[it];
+           evehits[it] = Trkeve.recHitsSize();
+           everes[it] = genpt*(eveipt[it] - 1/genpt); 
+       } else {evevalid[it] = false;}
+
+
+       mres[it] = genpt*(eveipt[it] - oddipt[it]);
+
    }//loop over original tev first hit collection
+
+   mytree->Fill();
 
 }//======analyze
 
@@ -184,71 +253,84 @@ void
 MuonPtPlots::beginJob()
 {
 
-//std::cout<<"Beginjob"<<std::endl;
-    hfile = new TFile("muonplots.root","RECREATE");
+    //std::cout<<"Beginjob"<<std::endl;
+    hfile = new TFile(filename.c_str(),"RECREATE");
     hfile->cd();
+    mytree = new TTree("mytree","");
+    mytree->Branch("run",&run,"run/I");
+    mytree->Branch("evt",&evt,"evt/I");
+    mytree->Branch("ls",&ls,"ls/I");
 
-    hresol = new TH1F("hresol",";Relative 1/p_{T} resolution;Events",100,-0.5,0.5);
-    hresol_anew = new TH1F("hresol_anew",";Relative 1/p_{T} resolution;Events",100,-0.5,0.5);
-    hresol_new = new TH1F("hresol_new",";Relative 1/p_{T} resolution;Events",100,-0.5,0.5);
+    mytree->Branch("nmu",&nmu,"nmu/I");
 
+    mytree->Branch("tevvalid",tevvalid,"tevvalid[nmu]/O");
+    mytree->Branch("tevpt",tevpt,"tevpt[nmu]/F");
+    mytree->Branch("tevipt",tevipt,"tevipt[nmu]/F");
+    mytree->Branch("tevhits",tevhits,"tevhits[nmu]/I");
+    mytree->Branch("tevres",tevres,"tevres[nmu]/F");
+
+    mytree->Branch("anewvalid",anewvalid,"anewvalid[nmu]/O");
+    mytree->Branch("anewpt",anewpt,"anewpt[nmu]/F");
+    mytree->Branch("anewipt",anewipt,"anewipt[nmu]/F");
+    mytree->Branch("anewhits",anewhits,"anewhits[nmu]/I");
+    mytree->Branch("anewres",anewres,"anewres[nmu]/F");
+
+    mytree->Branch("oddvalid",oddvalid,"oddvalid[nmu]/O");
+    mytree->Branch("oddpt",oddpt,"oddpt[nmu]/F");
+    mytree->Branch("oddipt",oddipt,"oddipt[nmu]/F");
+    mytree->Branch("oddhits",oddhits,"oddhits[nmu]/I");
+    mytree->Branch("oddres",oddres,"oddres[nmu]/F");
+
+    mytree->Branch("evevalid",evevalid,"evevalid[nmu]/O");
+    mytree->Branch("evept",evept,"evept[nmu]/F");
+    mytree->Branch("eveipt",eveipt,"eveipt[nmu]/F");
+    mytree->Branch("evehits",evehits,"evehits[nmu]/I");
+    mytree->Branch("everes",everes,"everes[nmu]/F");
+
+    mytree->Branch("mres",mres,"mres[nmu]/F");
+
+
+
+
+
+
+    
+  
+    
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 MuonPtPlots::endJob() {
-    hfile->cd();
-    hresol->Write();
-    hresol_anew->Write();
-    hresol_new->Write();
-    hfile->Close();
+    hfile->Write();
+    
 }
 
 
 //====================Find the pt value for a track in other collection
-float MuonPtPlots::FindPtValueInTrackMap(const reco::MuonRef& muRef,const reco::TrackToTrackMap* trkMap){
+reco::Track MuonPtPlots::FindTrackInTrackMap(const reco::MuonRef& muRef,const reco::TrackToTrackMap* trkMap, bool& isValid){
 
+    isValid = false;
+    reco::Track* trk = new reco::Track();
     reco::TrackToTrackMap::const_iterator trkit;
     trkit = trkMap->find(muRef->globalTrack());
 
     if (trkit == trkMap->end()){
         std::cout<<"Invalid track in this collection"<<std::endl;
-        return -9999;
+        return *trk;
     }
 
-    return (*(trkit->val)).pt();
+    //std::cout<<"return track"<<std::endl;
+    isValid = true;
+     
+    return (*(trkit->val));
     
 
 }//=========FindPtValueInTrackMap
 
 
 
-//====================Find the x and y positions of every hit in the track
-//and plot
-void MuonPtPlots::FillXYplot(TH2F* hh,const reco::MuonRef& muRef,const reco::TrackToTrackMap* trkMap){
 
-    reco::TrackToTrackMap::const_iterator trkit;
-    trkit = trkMap->find(muRef->globalTrack());
-
-    if (trkit == trkMap->end()){
-        std::cout<<"Invalid track in this collection"<<std::endl;
-        return;
-    }
-
-    //the track
-    const reco::Track glbTrack = *(trkit->val);
-    //the magnetic field
-    edm::ESHandle<MagneticField> theMF;
-    iSetup.get<IdealMagneticFieldRecord>().get(magneticField);
-
-    //the tracker geometry
-    
-    reco::TransientTrack ttrack(glbTrack,,);
-    return;
-    
-    
-
-}//=========FindPtValueInTrackMap
 
 
 //define this as a plug-in
