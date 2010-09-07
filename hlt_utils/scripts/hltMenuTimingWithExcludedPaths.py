@@ -24,7 +24,6 @@
 
 
 import os,sys
-import subprocess as sub
 import string, re
 import fileinput
 import commands
@@ -93,7 +92,7 @@ def get_time_without_paths(hltpaths,dicOpt):
         print "Working on path "+path+", be patient, this might take a while"
         #run the timing script
         time_str = "$CMSSW_BASE/test/$SCRAM_ARCH/hltTimingSummary -i "+themfile+" -o outfile -f -s -c -p 0 -e exclude.txt -x "+path
-        os.system(time_str)
+        #os.system(time_str)
         #get the the total time info through PyROOT
         rootf = TFile("outfile.root","READ")
         h1 = rootf.Get("totalTime")
@@ -113,7 +112,7 @@ def parse_hltconfig(dicOpt):
         hltfile = dicOpt['hfile']
         thefile = open(hltfile,"r")
         for line in thefile.readlines():
-            if (line.find('process.HLT_') != -1 or line.find('process.AlCa_') != -1):
+            if (line.find('process.HLT_') != -1 or line.find('process.AlCa_') != -1 or line.find('process.HLTriggerFinalPath') != -1 or line.find('process.DQM_') != -1):
                 path = line.split("=")[0].split(".")[1].rstrip()
                 allpaths.append(path)
     #if text file is given
@@ -121,7 +120,7 @@ def parse_hltconfig(dicOpt):
         hltfile = dicOpt['lfile']
         thefile = open(hltfile,"r")
         for line in thefile.readlines():
-            if (line.find('HLT_') != -1 or line.find('AlCa_') != -1):
+            if (line.find('HLT_') != -1 or line.find('AlCa_') != -1 or line.find('HLTriggerFinalPath') != -1 or line.find('DQM_') != -1):
                 path = line.rstrip()
                 allpaths.append(path)
 
@@ -161,7 +160,7 @@ if __name__ =='__main__':
     if not args and not option:
         exit()
 
-    #safety check for HLT menu config    
+    #safety checks 
     if not option.hfile and not option.lfile:
         print "provide the HLT menu python configuration file or a text file with a list of paths to be excluded"
         exit()
@@ -170,7 +169,6 @@ if __name__ =='__main__':
         print "provide the HLT menu python configuration file or a text file with a list of paths to be excluded, but not both at the same time"
         exit()
         
-        #safety check for HLT menu config    
     if not option.mfile:
         print "provide the name of the root file with the timing measurement"
         exit()
