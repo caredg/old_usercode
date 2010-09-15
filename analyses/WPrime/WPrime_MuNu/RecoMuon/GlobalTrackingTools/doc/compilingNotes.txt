@@ -1,7 +1,0 @@
-In order to be able to compile, I had to make a soft link in the
-lib/slc5_ia32_gcc434/, basically:
-
-libRecoTrackerSpecialSeedGenerators.so ->
-pluginRecoTrackerSpecialSeedGenerators.so
-
-This needs to be fixed at some point.
