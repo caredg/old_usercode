@@ -34,11 +34,8 @@
 <use   name="TrackingTools/TransientTrackingRecHit"/>
 <use   name="Utilities/General"/>
 <use   name="Utilities/Timing"/>
-<use   name="RecoTracker/TkSeedGenerator"/>
-<use   name="RecoTracker/TkSeedingLayers"/>
 <use   name="RecoTracker/SpecialSeedGenerators"/>
 <use   name="root"/>
 <export>
   <lib   name="1"/>
-  <lib   name="RecoTracker/SpecialSeedGenerators"/>
- </export>
+</export>

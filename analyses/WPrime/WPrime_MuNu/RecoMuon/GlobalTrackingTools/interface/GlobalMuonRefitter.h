@@ -4,8 +4,8 @@
 /** \class GlobalMuonRefitter
  *  class to build muon trajectory
  *
- *  $Date: 2010/02/20 21:01:05 $
- *  $Revision: 1.8 $
+ *  $Date: 2010/06/18 07:40:10 $
+ *  $Revision: 1.9 $
  *
  *  \author N. Neumeister 	 Purdue University
  *  \author C. Liu 		 Purdue University
@@ -25,7 +25,6 @@
 #include "DataFormats/DTRecHit/interface/DTRecHitCollection.h"
 #include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
 
-
 //for seed regeneration
 #include "TrackingTools/DetLayers/interface/NavigationDirection.h"
 #include "RecoTracker/TrackProducer/interface/TrackProducerBase.h"
@@ -34,10 +33,6 @@
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "TrackingTools/GeomPropagators/interface/Propagator.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateTransform.h"
-#include "RecoTracker/TkSeedGenerator/interface/SeedFromConsecutiveHitsCreator.h"
-#include "RecoTracker/TkTrackingRegions/interface/TrackingRegion.h"
-#include "RecoTracker/TkSeedingLayers/interface/SeedingHitSet.h"
-#include "RecoTracker/TkTrackingRegions/interface/GlobalTrackingRegion.h" 
 
 
 namespace edm {class Event;}
@@ -85,13 +80,13 @@ class GlobalMuonRefitter {
     void setServices(const edm::EventSetup&);
 
     /// build combined trajectory from sta Track and tracker RecHits
-        std::vector<Trajectory> refit(const reco::Track& globalTrack, const int theMuonHitsOption) const;
+    std::vector<Trajectory> refit(const reco::Track& globalTrack, const int theMuonHitsOption) const;
 
     /// build combined trajectory from subset of sta Track and tracker RecHits
     std::vector<Trajectory> refit(const reco::Track& globalTrack,
 				  const reco::TransientTrack track,
 				  TransientTrackingRecHit::ConstRecHitContainer allRecHitsTemp,
-                                  const int theMuonHitsOption) const;
+				  const int theMuonHitsOption) const;
 
     /// refit the track with a new set of RecHits
     std::vector<Trajectory> transform(const reco::Track& newTrack,
@@ -100,22 +95,20 @@ class GlobalMuonRefitter {
     
     // get rid of selected station RecHits
     ConstRecHitContainer getRidOfSelectStationHits(ConstRecHitContainer hits) const;
-	ConstRecHitContainer getEvenOddHits(ConstRecHitContainer hits, bool const getEven) const;
-	ConstRecHitContainer getEvenOddLayers(ConstRecHitContainer hits, bool const getEven) const;
-	TrajectoryStateOnSurface scaleTSOS(TrajectoryStateOnSurface tsosIn, double const scale) const;
+
+    //split hits in even or odd
+    ConstRecHitContainer getEvenOddHits(ConstRecHitContainer hits, bool const getEven) const;
+
     //additional to create new seeds
     TrajectoryStateOnSurface TSOSFromNewSeed(
-    TrajectorySeed* newseed,ConstRecHitContainer newseedtrackerhits,
-    const MagneticField* myMF) const;
+        TrajectorySeed* newseed,ConstRecHitContainer newseedtrackerhits,
+        const MagneticField* myMF) const;
     TrajectorySeed* NewSeedFromPairOrTriplet(
         TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit, 
         PropagationDirection& propDir,ConstRecHitContainer& newseedtrackerhits 
         ) const;
-    const TrajectorySeed* NewSeedFromConsecutiveHitsCreator(
-    TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit, 
-    const reco::Track& newTrack, ConstRecHitContainer& newseedtrackerhits 
-        ) const;
-    
+
+
 
 
   protected:
@@ -133,8 +126,6 @@ class GlobalMuonRefitter {
     /// select muon hits compatible with trajectory; check hits in chambers with showers
     ConstRecHitContainer selectMuonHits(const Trajectory&, 
                                         const std::vector<int>&) const;
-//	ConstRecHitContainer selectSwitchHits(const Trajectory& , 
-  //                                 bool const ) const; 
  
     /// print all RecHits of a trajectory
     void printHits(const ConstRecHitContainer&) const;
@@ -157,11 +148,9 @@ class GlobalMuonRefitter {
     float theCSCChi2Cut;
     float theRPCChi2Cut;
     bool  theCosmicFlag;
-	int   theStab;
-	double theStabScale;
+    std::string theHitsToKeep;
     std::string theNewSeed;
     
-
 
     edm::InputTag theDTRecHitLabel;
     edm::InputTag theCSCRecHitLabel;
@@ -190,5 +179,6 @@ class GlobalMuonRefitter {
     edm::ESHandle<TransientTrackingRecHitBuilder> theMuonRecHitBuilder;
 
     const MuonServiceProxy* theService;
+    const edm::Event* theEvent;
 };
 #endif
