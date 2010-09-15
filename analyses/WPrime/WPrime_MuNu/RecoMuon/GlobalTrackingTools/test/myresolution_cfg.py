@@ -16,7 +16,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 
 process.configurationMetadata = cms.untracked.PSet(
-    version = cms.untracked.string('$Revision: 1.5 $'),
+    version = cms.untracked.string('$Revision: 1.6 $'),
     annotation = cms.untracked.string('recoTeVMuon nevts:10'),
     name = cms.untracked.string('PyReleaseValidation')
 )
@@ -28,7 +28,7 @@ process.options = cms.untracked.PSet(
 )
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/castor/cern.ch/user/e/ecarrera/analyses/wprime_munu/singleMuonEvts/382/SingleMuon_RECO_1000_START38_V10_20000evts.root')
+    fileNames = cms.untracked.vstring('rfio:/castor/cern.ch/user/e/ecarrera/analyses/wprime_munu/singleMuonEvts/382/SingleMuon_RECO_100_START38_V10_40evts.root')
            
 )
 
