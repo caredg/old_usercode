@@ -4,8 +4,8 @@
  *  Description:
  *
  *
- *  $Date: 2010/06/18 07:40:09 $
- *  $Revision: 1.13 $
+ *  $Date: 2010/09/15 09:18:59 $
+ *  $Revision: 1.5 $
  *
  *  Authors :
  *  P. Traczyk, SINS Warsaw
@@ -21,6 +21,10 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+
+//ROOT
+#include "TRandom3.h"
+
 
 //-------------------------------
 // Collaborating Class Headers --
@@ -118,7 +122,10 @@ GlobalMuonRefitter::GlobalMuonRefitter(const edm::ParameterSet& par,
   theHitsToKeep = par.getUntrackedParameter<string>("HitsToKeep", "all");
   
   //[Edgar] Specify a new seeder code
-  theNewSeed = par.getUntrackedParameter<string>("NewSeed", "pairORtriplet" );
+  theNewSeed = par.getUntrackedParameter<string>("NewSeed", "none" );
+
+  //[Edgar] Option to jitter the TSOS.  The default "0." assumes no jittering.
+  theJitterScale = par.getUntrackedParameter<double>("JitterScale",0.);
   
   theCacheId_TRH = 0;
 
@@ -655,7 +662,7 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
   
  
 
-  //NEW SEEDING, THIS IS THE DEFAULT
+  //NEW SEEDING, the default is "none"
   if (theNewSeed == "pairORtriplet" ){
       
       newseed= NewSeedFromPairOrTriplet(recHitsForReFit,propDir,newseedtrackerhits);
@@ -696,7 +703,15 @@ vector<Trajectory> GlobalMuonRefitter::transform(const reco::Track& newTrack,
                             << firstTSOS.globalMomentum() << " = "
                             << firstTSOS.globalMomentum().mag() << endl;
       
-      newTSOS = firstTSOS;
+      //check if the user wants to jitter, if not do whatever is the
+      //default
+      if (theJitterScale != 0.){
+          newTSOS = scaleTSOS(firstTSOS, theJitterScale);
+      }
+      else{
+          newTSOS = firstTSOS;
+      }
+      
 
   }//----------else if theNewSeed
 
@@ -893,6 +908,8 @@ GlobalMuonRefitter::ConstRecHitContainer GlobalMuonRefitter::getEvenOddHits(Cons
      SeedingHitSet newseedset(newseedtrackerhits);
      //Get the Navigation direction (this is very annoying, I had to 
      //rename the direction of propagation enum to avoid conflict)
+     //I guess it can be made using a different namespace but I'd rather
+     //change just one piece of code.
      NavigationDirection seedDir;
      if (theRefitDirection == RinsideOut ) seedDir = insideOut;
      else if (theRefitDirection == RoutsideIn ) seedDir = outsideIn;
@@ -969,3 +986,35 @@ TrajectoryStateOnSurface GlobalMuonRefitter::TSOSFromNewSeed(
     return newTSOS;
     
 }//------------------------------- TSOSFromNewSeed()
+
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+TrajectoryStateOnSurface GlobalMuonRefitter::scaleTSOS(TrajectoryStateOnSurface tsosIn, 
+                                                       double const scale) const{
+//---------------------------------------------------------------------------------------
+
+	GlobalTrajectoryParameters params = tsosIn.globalParameters(); 
+
+	TRandom3 rand3jit(0);
+
+	GlobalVector glbVec(
+		params.momentum().x()*scale*rand3jit.Gaus(1.,0.1),	
+		params.momentum().y()*scale*rand3jit.Gaus(1.,0.1),	
+		params.momentum().z()*scale*rand3jit.Gaus(1.,0.1));	
+
+	GlobalTrajectoryParameters badger(
+		params.position(),
+		glbVec,
+		params.charge(),
+		&(*(theService->magneticField()))
+	); 
+
+	TrajectoryStateOnSurface badgerTSOS(badger,tsosIn.curvilinearError(), tsosIn.surface(), tsosIn.surfaceSide());
+
+	return badgerTSOS;
+}//-----------------------------------scaleTSOS

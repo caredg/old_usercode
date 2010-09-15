@@ -10,7 +10,7 @@ cmsenv
 addpkg RecoMuon/GlobalMuonProducer
 addpkg RecoMuon/GlobalTrackingTools
 addpkg RecoTracker/SpecialSeedGenerators
-cvs co -r V00-02-02 -d eraseme UserCode/ecarrera/analyses/WPrime/WPrime_MuNu/RecoMuon/GlobalTrackingTools
+cvs co -r V00-02-03 -d eraseme UserCode/ecarrera/analyses/WPrime/WPrime_MuNu/RecoMuon/GlobalTrackingTools
 cp eraseme/BuildFile.xml RecoMuon/GlobalTrackingTools/.
 cp eraseme/src/GlobalMuonRefitter.cc RecoMuon/GlobalTrackingTools/src/.
 cp eraseme/interface/GlobalMuonRefitter.h RecoMuon/GlobalTrackingTools/interface/.

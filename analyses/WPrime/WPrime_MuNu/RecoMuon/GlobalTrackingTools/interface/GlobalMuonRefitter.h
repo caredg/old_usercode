@@ -4,8 +4,8 @@
 /** \class GlobalMuonRefitter
  *  class to build muon trajectory
  *
- *  $Date: 2010/06/18 07:40:10 $
- *  $Revision: 1.9 $
+ *  $Date: 2010/09/15 09:18:59 $
+ *  $Revision: 1.5 $
  *
  *  \author N. Neumeister 	 Purdue University
  *  \author C. Liu 		 Purdue University
@@ -108,6 +108,11 @@ class GlobalMuonRefitter {
         PropagationDirection& propDir,ConstRecHitContainer& newseedtrackerhits 
         ) const;
 
+    //jitter TSOS
+    TrajectoryStateOnSurface scaleTSOS(TrajectoryStateOnSurface tsosIn, 
+                                                           double const scale) const;
+    
+
 
 
 
@@ -150,6 +155,7 @@ class GlobalMuonRefitter {
     bool  theCosmicFlag;
     std::string theHitsToKeep;
     std::string theNewSeed;
+    double theJitterScale;
     
 
     edm::InputTag theDTRecHitLabel;
