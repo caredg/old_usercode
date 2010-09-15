@@ -16,7 +16,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 
 process.configurationMetadata = cms.untracked.PSet(
-    version = cms.untracked.string('$Revision: 1.207 $'),
+    version = cms.untracked.string('$Revision: 1.5 $'),
     annotation = cms.untracked.string('recoTeVMuon nevts:10'),
     name = cms.untracked.string('PyReleaseValidation')
 )
@@ -87,10 +87,3 @@ process.out_step = cms.EndPath(process.output)
 process.schedule = cms.Schedule(process.reconstruction_step,process.endjob_step,process.out_step)
 
 
-process.source.fileNames = (
-	'rfio:/castor/cern.ch/user/b/botta/Production/CMSSW380pre8/GEN_SIM_DIGI_RECO_HLTDEBUG_highPt/Skimmed//SingleMuMinPt200-1000_GEN_SIM_DIGI_RECO_HLTDEBUG_8E29_skim_27.root',
-	'rfio:/castor/cern.ch/user/b/botta/Production/CMSSW380pre8/GEN_SIM_DIGI_RECO_HLTDEBUG_highPt/Skimmed//SingleMuMinPt200-1000_GEN_SIM_DIGI_RECO_HLTDEBUG_8E29_skim_28.root',
-	'rfio:/castor/cern.ch/user/b/botta/Production/CMSSW380pre8/GEN_SIM_DIGI_RECO_HLTDEBUG_highPt/Skimmed//SingleMuMinPt200-1000_GEN_SIM_DIGI_RECO_HLTDEBUG_8E29_skim_29.root',
-	'rfio:/castor/cern.ch/user/b/botta/Production/CMSSW380pre8/GEN_SIM_DIGI_RECO_HLTDEBUG_highPt/Skimmed//SingleMuMinPt200-1000_GEN_SIM_DIGI_RECO_HLTDEBUG_8E29_skim_3.root',
-	'rfio:/castor/cern.ch/user/b/botta/Production/CMSSW380pre8/GEN_SIM_DIGI_RECO_HLTDEBUG_highPt/Skimmed//SingleMuMinPt200-1000_GEN_SIM_DIGI_RECO_HLTDEBUG_8E29_skim_30.root',
-)
