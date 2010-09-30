@@ -258,7 +258,7 @@ process.GlobalTag.globaltag = useGlobalTag
 #Input the source file
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-                                'rfio:/castor/cern.ch/cms/store/data/Run2010A/MinimumBias/RAW/v1/000/143/953/FC3EE10A-C9B0-DF11-A074-001D09F2924F.root'
+                                'rfio:/castor/cern.ch/cms/store/data/Run2010B/MinimumBias/RAW/v1/000/146/511/F43D188C-7BC7-DF11-B1C8-00304879EE3E.root'
                                 )
 )
 
@@ -391,6 +391,7 @@ process.hltPreHLTIMINGSKIMSmart = cms.EDFilter( "TriggerResultsFilter",
     \thltResults = cms.InputTag( "TriggerResults" ),
     \tl1tResults = cms.InputTag( "" ),
     \tl1tIgnoreMask = cms.bool( False ),
+    \tl1techIgnorePrescales = cms.bool(False),
     \tdaqPartitions = cms.uint32( 1 ),
     \tthrow = cms.bool( True )
     )
