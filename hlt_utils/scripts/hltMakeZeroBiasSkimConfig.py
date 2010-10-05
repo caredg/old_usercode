@@ -4,7 +4,7 @@
 # Edgar Carrera
 # ecarrera@cern.ch
 #
-# This script takes as input a RECO file from a given run
+# This script takes as input a RAW (or RECO) file from a given run
 # that resides in CASTOR
 # and outputs a configuration file that can be used to skim
 # on the L1 "enabled" seeds that were used in that run
