@@ -4,21 +4,26 @@
 # Edgar Carrera
 # ecarrera@cern.ch
 #
-# This script takes as input a RAW (or RECO) file from a given run
+# This script takes as input the path for the RAW dataset of a given run
 # that resides in CASTOR
 # and outputs a configuration file that can be used to skim
 # on the L1 "enabled" seeds that were used in that run
 # requiring also that the ZeroBias tech bit 4 was fired.
 # The purpose of such skim is to use it for timing studies.
 #
+# It also creates a *.csh file that can be used to quickly submit a LSF batch job
+#
 # One can use this script as:
-# python hltMakeZeroBiasSkim.py -p /castor/cern.ch/cms/store/data/Run2010A/MinimumBias/RECO/v4/000/143/953/FE37C85C-F4B0-DF11-B21A-003048D2BCA2.root
+# python hltMakeZeroBiasSkim.py -p /castor/cern.ch/cms/store/data/Run2010B/MinimumBias/RAW/v1/000/147/219/ -t 33500 -z 34.82 -o /castor/cern.ch/user/e/ecarrera/hlt_debug_skims/forHilton/run147219_L1SkimZB.root
 # for example.
 ###########################################################################
 
 """
    usage: %prog [options]
-   -p, --pfile = PFILE: Full CASTOR path of a RECO file for the run that will be skimmed.
+   -p, --path = PATH: Full CASTOR path of the RAW dataset for the run that will be skimmed.
+   -o, --out  = OUTDIR: Full CASTOR name for the output file.
+   -z, --zbrate = ZBRATE: Rate in Hz for the ZB trigger, bit 4 in the run
+   -t, --trate = TRATE: Total L1 rate in Hz
 """
 
 
@@ -81,12 +86,17 @@ def parse(docstring, arglist=None):
 
 
 #######################################################
-def dump_L1_info(pfile):
+def dump_L1_info(path):
 #######################################################
     #note: we should get this information in a more efficient way
     #get rid of trash
     os.system("rm -f auxfile.py")
     os.system("rm -f l1dump.txt")
+    #pick the first file from the dataset to use it as source of info
+    str_nsls = "nsls "+path
+    mypipe = subprocess.Popen(str_nsls,shell=True,stdout=subprocess.PIPE)
+    files = mypipe.communicate()[0].split()
+    pfile = path+"/"+files[0]
     #get the global tag from the Provenance
     print "Extracting GlobalTag from the Provenance, this might take some time due to CASTOR I/O, be patient or pre-stage the file..."
     str_gtag = "edmProvDump rfio:"+pfile+"|grep globaltag|head -1| awk '{print $5}'"
@@ -213,10 +223,10 @@ def parse_L1tt_info():
 def get_L1bits_list(dicOpt):
 #######################################################
    
-    #get path to RECO file
-    pfile = dicOpt['pfile']
+    #get path to RAW files
+    path = dicOpt['path']
     #dump L1 information in a file
-    dump_L1_info(pfile)
+    dump_L1_info(path)
     #parse the resulting file
     algolist = parse_L1algo_info()
     techlist = parse_L1tt_info()
@@ -230,7 +240,15 @@ def get_L1bits_list(dicOpt):
 #######################################################
 def print_config_file(dicOpt,algolist,techlist):
 #######################################################
-    pfile = dicOpt['pfile']
+    path = dicOpt['path']
+    out = dicOpt['out']
+    zbrate = dicOpt['zbrate']
+    trate = dicOpt['trate']
+
+    #calculate prescale for ZB path
+    prezb = int(float(trate)/float(zbrate))
+    print "the prescale for ZB is %i" % prezb
+    
     #clear config
     os.system("rm -f skimL1Seeds.py")
     #open a config file to append
@@ -256,10 +274,10 @@ process.GlobalTag.pfnPrefix = cms.untracked.string('frontier://FrontierProd/')
 process.GlobalTag.globaltag = useGlobalTag
 
 
-#Input the source file
+#Input the source file but feed it at the end of the file
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-                                'rfio:/castor/cern.ch/cms/store/data/Run2010B/MinimumBias/RAW/v1/000/146/511/F43D188C-7BC7-DF11-B1C8-00304879EE3E.root'
+                                'rfio:dummy.root'
                                 )
 )
 
@@ -395,6 +413,7 @@ process.hltPreHLTIMINGSKIMSmart = cms.EDFilter( "TriggerResultsFilter",
 \ttriggerConditions = cms.vstring(
 """
     )
+    cfg.write("\t\t'HLT_TTT4 / %i',\n" % prezb)
     for seed in algolist:
         cfg.write("\t\t'HLT_T%s',\n" % seed.split("L1_")[1].rstrip())
     for tseed in techlist:
@@ -413,15 +432,16 @@ process.hltPreHLTIMINGSKIMSmart = cms.EDFilter( "TriggerResultsFilter",
         )
 
     #--------Write the output file
+    cfg.write("process.hltOutputHLTIMINGSKIM = cms.OutputModule('PoolOutputModule',\n")
+    cfg.write("\t\t\t\tfileName = cms.untracked.string('rfio:%s')," % out) 
     cfg.write(
 """
-process.hltOutputHLTIMINGSKIM = cms.OutputModule('PoolOutputModule',
-                                     fileName = cms.untracked.string('file:outputHLTIMINGSKIM.root'),
                                      outputCommands = cms.untracked.vstring(
-                                                     'keep *',
+                                                     'drop *','keep FEDRawDataCollection_source_*_*'
                                                      ),
                                      SelectEvents = cms.untracked.PSet(
                                                      SelectEvents = cms.vstring(
+                                                     'HLT_TTT4',
 """
         )
     for seed in algolist:
@@ -470,7 +490,7 @@ process.options = cms.untracked.PSet(
 
 #Set maximum number of events to process
 process.maxEvents = cms.untracked.PSet(
-   input = cms.untracked.int32(100)
+   input = cms.untracked.int32(-1)
 )
 
 
@@ -484,11 +504,55 @@ process.MessageLogger.categories.append('L1GtTrigReport')
 process.MessageLogger.categories.append('HLTrigReport')
 """
         )
+
+    #------------all the files in dataset
+    #get all the MinBias RAW files for this run
+    str_nsls = "nsls "+path
+    mypipe = subprocess.Popen(str_nsls,shell=True,stdout=subprocess.PIPE)
+    files = mypipe.communicate()[0].split()
+    #print files
+    cfg.write("\nprocess.source.fileNames = (\n")
+    for k in files:
+        kfile = "\t'rfio:"+path+"/"+k+"',\n"
+        cfg.write(kfile)
+    cfg.write(")\n")
+    cfg.write(
+"""
+#in case no ordering is needed
+#process.source.noEventSort = cms.untracked.bool(False)
+#to select only certain lumi sections
+#process.source.lumisToProcess = cms.untracked. VLuminosityBlockRange('132601:10-132601:100')\n
+"""
+        )
     
     cfg.close()
 
     print "\nfile skimL1Seeds.py has been created"
 
+
+
+#######################################################
+def print_batch_script():
+#######################################################
+    #clean beforehand
+    os.system("rm -f skimL1Seeds.csh")
+    #get the current working directory
+    wdir = os.getcwd()
+    #write batch script file
+    fbatch = open("skimL1Seeds.csh","a")
+    fbatch.write("#!/bin/csh\n")
+    fbatch.write("cd %s" % wdir)
+    fbatch.write(
+"""
+cmsenv
+cmsRun skimL1Seeds.py
+"""
+        )
+    fbatch.close()
+    print "batch file skimL1Seeds.csh has been created"
+    #hint on how to submit the job
+    print "Now you can sumbit a batch job as:"
+    print "bsub -q 8nh -J skimL1ZB < skimL1Seeds.csh"
     
 
 #######################################################
@@ -496,7 +560,10 @@ def get_default_options(option):
 #######################################################
     dicOpt = {}
 
-    dicOpt['pfile']= str(option.pfile)
+    dicOpt['path']= str(option.path)
+    dicOpt['out']= str(option.out)
+    dicOpt['zbrate']= option.zbrate
+    dicOpt['trate']= option.trate
 
 
     return dicOpt
@@ -527,3 +594,6 @@ if __name__ =='__main__':
 
     #print configuration file
     print_config_file(dicOpt,algolist,techlist)
+
+    #prepare script for batch submission
+    print_batch_script()
