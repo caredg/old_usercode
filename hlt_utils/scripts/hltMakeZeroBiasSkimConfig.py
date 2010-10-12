@@ -522,6 +522,10 @@ process.MessageLogger.categories.append('HLTrigReport')
 #process.source.noEventSort = cms.untracked.bool(False)
 #to select only certain lumi sections
 #process.source.lumisToProcess = cms.untracked. VLuminosityBlockRange('132601:10-132601:100')\n
+#in case you need to limit the file size to ~4.0Gb to avoid problems
+#Several files will be created if this limit is surpassed
+#The value is in Kb.
+process.hltOutputHLTIMINGSKIM.maxSize = cms.untracked.int32(4000000)
 """
         )
     
