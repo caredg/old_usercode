@@ -10,7 +10,7 @@ fi
 
 # Definitions
 RELEASE_VERSION=CMSSW_3_8_5
-WORKING_AREA=V150
+WORKING_AREA=V150_385
 # end definitions
 
 export RELEASE_VERSION WORKING_AREA
@@ -29,7 +29,7 @@ cd $RELEASE_VERSION/src
 echo -e  "\n**************************"
 echo -e  " Checking out the code..."
 echo -e  "**************************"
-cvs -Q co -r V00-01-50 UserCode/CMGWPrimeGroup
+cvs -Q co -r 12-OCT-10 -d UserCode UserCode/ecarrera/analyses/WPrime/WPrime_MuNu/CodeImprove_12Oct10/UserCode
 # cvs -Q co UserCode/CMGWPrimeGroup
 
 echo -e "\n************************"
