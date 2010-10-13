@@ -193,9 +193,14 @@ class Event : public TObject {
        HLT_L2Mu25 = -1;}
    /// Particle-Flow MET
    TVector2 pfmet;
+   //same as pfmet but with the pT (from global) of the hardest muon added back
+   TVector2 pfmetaddmu; 
+                        
 
-   /// Jets (class: TLorentzVector)
-   TClonesArray * calojet;
+   // Jets (class: TLorentzVector)
+   //Calo jets
+   TClonesArray * jet;
+   //PF jets
    TClonesArray * pfjet;
    /// Muons (class: muon)
    TClonesArray * mu;

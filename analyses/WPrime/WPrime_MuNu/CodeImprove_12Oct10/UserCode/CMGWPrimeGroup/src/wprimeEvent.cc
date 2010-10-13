@@ -5,7 +5,7 @@ using namespace wprime;
 // constructor
 Event::Event()
 {
-  calojet = new TClonesArray("TLorentzVector");
+  jet = new TClonesArray("TLorentzVector");
   pfjet = new TClonesArray("TLorentzVector");
   mu = new TClonesArray("wprime::Muon");
   mu_mc = new TClonesArray("wprime::MCParticle");
@@ -17,7 +17,7 @@ Event::Event()
 // destructor
 Event::~Event()
 {
-    delete calojet; delete pfjet; delete mu; 
+    delete jet; delete pfjet; delete mu; 
     delete mu_mc; delete neu_mc; delete w_mc; delete wp_mc; 
 }
 

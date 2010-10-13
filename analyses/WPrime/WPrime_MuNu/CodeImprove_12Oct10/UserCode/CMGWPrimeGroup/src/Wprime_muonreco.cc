@@ -17,6 +17,9 @@
 #include "DataFormats/METReco/interface/PFMET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/JetReco/interface/PFJetCollection.h"
+#include "DataFormats/Common/interface/View.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
+
 
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 
@@ -205,14 +208,77 @@ void Wprime_muonreco::getTriggers(const edm::Event & iEvent)
 // get Particle-Flow MET
 void Wprime_muonreco::getPFMET(const edm::Event & iEvent)
 {
-  // Get the MET collection from the event
+  //----- Get the MET collection from the event
   edm::Handle<reco::PFMETCollection> pfmetCollection;
   iEvent.getByLabel(pfmetTag_, pfmetCollection);
-  
   PFMETCollection::const_iterator pfMET = pfmetCollection->begin();
   met_x += pfMET->px();
   met_y += pfMET->py();
   evt->pfmet.Set(met_x, met_y);
+
+  //----Loop over PFCandidates to get the hardest muon and put its
+  //pT back to the MET TVector2; create a new object
+  edm::Handle<edm::View<Candidate> > PFCandidates;
+  iEvent.getByLabel("particleFlow",PFCandidates);
+  int nmuon = 0;
+  edm::View<reco::Candidate>::const_iterator iParticle;
+  edm::View<reco::Candidate>::const_iterator ihardestPFMu;
+  double pTtemp = 0;
+  for( iParticle = (PFCandidates.product())->begin() ; 
+       iParticle != (PFCandidates.product())->end() ; ++iParticle ){
+
+      const Candidate* candidate = &(*iParticle);
+      if (candidate) {
+          const PFCandidate* pfCandidate = 
+              dynamic_cast<const PFCandidate*> (candidate);
+          if (pfCandidate){
+              //check that it is a muon
+              if (!(pfCandidate->particleId() == 3)) continue;
+              //const double c_theta = iParticle->theta();
+              //const double c_e     = iParticle->energy();
+              //const double c_et    = c_e*sin(c_theta);
+              //check pt from default muon
+              //reco::MuonRef muref = pfCandidate->muonRef();
+              //double m_pt = 999999;
+              //double m_et = 999999;
+              //if (muref.isNonnull()){
+              //    m_pt = muref->pt();
+              //    m_et = muref->et();
+              //}
+              //check pt from the tracker
+              //reco::TrackRef trackRef = pfCandidate->trackRef();
+              //const reco::Track& track = *trackRef;
+              //double t_pt = track.pt();
+              //cout<<"mu No. "<<nmuon<<
+              //    "\t pfpt = "<<pfCandidate->pt()<<
+              //    "\t pfEt1 = "<<c_et<<
+              //    "\t pfEt2 = "<<pfCandidate->et()<<
+              //    "\tm_pt = "<<m_pt<<
+              //    "\tm_et = "<<m_et<<
+              //    "\tt_pt = "<<t_pt<<endl;
+
+              if ( pfCandidate->pt() > pTtemp){
+                  ihardestPFMu = iParticle;
+                  pTtemp = pfCandidate->pt();
+              }
+              ++nmuon;
+              
+          }//pfCandidate
+      }//if candidate
+  }//loop over PFCandidates
+  
+  //Add back the pT for the hardest muon if found.
+  if (nmuon > 0){
+      const Candidate* mycandidate = &(*ihardestPFMu);
+      const PFCandidate* mypfCandidate = 
+          dynamic_cast<const PFCandidate*> (mycandidate);
+      met_x += mypfCandidate->px();
+      met_y += mypfCandidate->py();
+      evt->pfmetaddmu.Set(met_x,met_y);
+  }//if nmuon >0
+  else evt->pfmetaddmu.Set(met_x,met_y);
+  
+
 }
 
 // get Jets
@@ -224,7 +290,7 @@ void Wprime_muonreco::getJets(const edm::Event & iEvent)
   edm::Handle<reco::PFJetCollection> jetPFCollection;
   iEvent.getByLabel(pfJetTag_, jetPFCollection);
 
-  TClonesArray & cjet = *(evt->calojet);
+  TClonesArray & cjet = *(evt->jet);
   TClonesArray & pfjet = *(evt->pfjet);
 
   //get calo jets
@@ -603,7 +669,7 @@ void Wprime_muonreco::init_event()
   evt->mu_mc->Clear(); evt->neu_mc->Clear(); 
   evt->w_mc->Clear(); evt->wp_mc->Clear(); 
   evt->mu->Clear(); 
-  evt->calojet->Clear();evt->pfjet->Clear();
+  evt->jet->Clear();evt->pfjet->Clear();
 
   evt->reset_triggers();
  
