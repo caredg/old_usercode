@@ -76,10 +76,12 @@ class Track : public TObject {
    Int_t q;
    /// chi^2
    Float_t chi2;
-   /// d0 
-   Float_t d0;
+   /// d0 w.r.t. (0,0)
+   Float_t d0_default;
    /// uncertainty on d0 
-   Float_t dd0;
+   Float_t dd0_default;
+   /// d0 w.r.t. the beamspot
+   Float_t d0;
    /// uncertainty on pt
    Float_t dpt;
    /// uncertainty on q/p

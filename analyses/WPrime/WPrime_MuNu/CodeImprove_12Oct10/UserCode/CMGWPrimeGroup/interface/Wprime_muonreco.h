@@ -40,6 +40,7 @@
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/RecoCandidate/interface/IsoDeposit.h"
 #include "DataFormats/RecoCandidate/interface/IsoDepositFwd.h"
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
 
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
@@ -158,6 +159,7 @@ class Wprime_muonreco : public edm::EDAnalyzer
   edm::Handle<reco::IsoDepositMap> tkMapH;
   edm::Handle<reco::IsoDepositMap> ecalMapH;
   edm::Handle<reco::IsoDepositMap> hcalMapH;
+  edm::Handle<reco::BeamSpot> beamSpotHandle;
 
   const reco::TrackToTrackMap * tevMap_default;
   const reco::TrackToTrackMap * tevMap_1stHit;
@@ -236,4 +238,6 @@ class Wprime_muonreco : public edm::EDAnalyzer
   // do isolation
   void doIsolation(reco::MuonRef mu,  wprime::Muon * wpmu);
 
+  void getBeamSpot(const edm::Event & iEvent);
+  double correct_d0(const reco::Track & track);
 };

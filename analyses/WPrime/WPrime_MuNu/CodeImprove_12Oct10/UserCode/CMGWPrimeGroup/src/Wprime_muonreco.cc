@@ -20,7 +20,6 @@
 #include "DataFormats/Common/interface/View.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 
-
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 
 #include "TFile.h"
@@ -390,8 +389,9 @@ void Wprime_muonreco::getTracking(wprime::Track & track, const reco::Track & p)
   track.p.SetVectM(p3, wprime::MUON_MASS);
   track.q = p.charge();
   track.chi2 = p.chi2();
-  track.d0 = p.d0();
-  track.dd0 = p.d0Error();
+  track.d0_default = p.d0();
+  track.d0 = correct_d0(p);
+  track.dd0_default = p.d0Error();
   track.dpt = p.ptError();
   track.dq_over_p = p.qoverpError();
   track.ndof = int(p.ndof());
@@ -413,7 +413,7 @@ void Wprime_muonreco::getNullTracking(wprime::Track & track)
   TVector3 p3(wrong, wrong, wrong);
   track.p.SetVectM(p3, wrong);
   track.q = wrong;
-  track.chi2 = track.d0 = track.dd0 = track.dpt = track.dq_over_p = wrong;
+  track.chi2 = track.d0 = track.d0_default = track.dd0_default = track.dpt = track.dq_over_p = wrong;
   track.ndof = track.Nstrip_layer = track.Npixel_layer = 
     track.Nstrip_layerNoMeas = track.Npixel_layerNoMeas = 
     track.NsiStrip_hits = track.Npixel_hits = track.Nmuon_hits = 
@@ -606,9 +606,9 @@ Wprime_muonreco::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   evt->evt_no = iEvent.id().event();
   evt->run_no = iEvent.id().run();
   evt->LS_no  = iEvent.id().luminosityBlock();
-
+  
   getGenParticles(iEvent);
-
+  
   ++(MuTrig.Nev); // # of processed events
   if(genmu_acceptance)
     // # of processed events with gen-muon within det.acceptance
@@ -626,6 +626,7 @@ Wprime_muonreco::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
   getIsolation(iEvent);
 
+  getBeamSpot(iEvent);
   getMuons(iEvent);
   getTeVMuons(iEvent);
   doMuons();
@@ -809,6 +810,22 @@ void Wprime_muonreco::check_trigger(const edm::Event & iEvent)
   run->HLTversion = HLTversion;
 }
 
+void Wprime_muonreco::getBeamSpot(const edm::Event & iEvent) {
+  iEvent.getByLabel("offlineBeamSpot", beamSpotHandle);
+  if(!beamSpotHandle.isValid()) {
+    edm::LogInfo("MyAnalyzer")
+      << "No beam spot available from EventSetup \n";
+  }      
+}
+
+double Wprime_muonreco::correct_d0(const reco::Track & track) {
+  reco::BeamSpot beamSpot;
+  beamSpot = *beamSpotHandle;
+  
+  math::XYZPoint point(beamSpot.x0(),beamSpot.y0(), beamSpot.z0());
+  double d0 = -1.*track.dxy(point);
+  return d0;
+}  
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(Wprime_muonreco);
