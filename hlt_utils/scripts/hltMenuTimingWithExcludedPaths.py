@@ -92,7 +92,7 @@ def get_time_without_paths(hltpaths,dicOpt):
         print "Working on path "+path+", be patient, this might take a while"
         #run the timing script
         time_str = "$CMSSW_BASE/test/$SCRAM_ARCH/hltTimingSummary -i "+themfile+" -o outfile -f -s -c -p 0 -e exclude.txt -x "+path
-        #os.system(time_str)
+        os.system(time_str)
         #get the the total time info through PyROOT
         rootf = TFile("outfile.root","READ")
         h1 = rootf.Get("totalTime")
