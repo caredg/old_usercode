@@ -5,22 +5,28 @@ using namespace wprime;
 // constructor
 Event::Event()
 {
-  jet = new TClonesArray("TLorentzVector");
-  pfjet = new TClonesArray("TLorentzVector");
-  mu = new TClonesArray("wprime::Muon");
-  mu_mc = new TClonesArray("wprime::MCParticle");
-  neu_mc = new TClonesArray("wprime::MCParticle");
-  w_mc = new TClonesArray("wprime::MCParticle");
-  wp_mc = new TClonesArray("wprime::MCParticle");
+    hlt = new TClonesArray("wprime::TrigInfo");
+    jet = new TClonesArray("TLorentzVector");
+    pfjet = new TClonesArray("TLorentzVector");
+    mu = new TClonesArray("wprime::Muon");
+    mu_mc = new TClonesArray("wprime::MCParticle");
+    neu_mc = new TClonesArray("wprime::MCParticle");
+    w_mc = new TClonesArray("wprime::MCParticle");
+    wp_mc = new TClonesArray("wprime::MCParticle");
 }
 
 // destructor
 Event::~Event()
 {
-    delete jet; delete pfjet; delete mu; 
+    delete hlt; delete jet; delete pfjet; delete mu; 
     delete mu_mc; delete neu_mc; delete w_mc; delete wp_mc; 
 }
 
+TrigInfo::TrigInfo()
+{
+    fired = 0; l1pre = 0; hltpre = 0; name = "invalid";
+}
+TrigInfo::~TrigInfo(){}
 
 RunInfo::RunInfo()
 {

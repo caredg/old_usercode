@@ -1,3 +1,4 @@
+#include <boost/foreach.hpp>
 #include "UserCode/CMGWPrimeGroup/interface/Wprime_muonreco.h"
 //
 
@@ -20,14 +21,18 @@
 #include "DataFormats/Common/interface/View.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 
-#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "FWCore/Utilities/interface/RegexMatch.h"
+
 
 #include "TFile.h"
 #include "TTree.h"
 
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include <map>
+
+
 
 using std::cout; using std::endl; using std::string; using std::ifstream;
 
@@ -47,7 +52,10 @@ Wprime_muonreco::Wprime_muonreco(const edm::ParameterSet& iConfig):
   ecalIsoMapTag_(iConfig.getParameter<edm::InputTag> ("EcalIsoMapTag")),
   hcalIsoMapTag_(iConfig.getParameter<edm::InputTag> ("HcalIsoMapTag")),
   detmu_acceptance(iConfig.getParameter<double>("Detmu_acceptance")),
+  getL1prescales(iConfig.getParameter<bool>("extractL1Prescales")),
+  expressions(iConfig.getParameter<std::vector<string> >("triggerConditions")),
   sample_description(iConfig.getParameter<string>("description"))
+
 {
    //now do what ever initialization is needed
   tree_job = tree_run = tree_event = 0;
@@ -57,6 +65,9 @@ Wprime_muonreco::Wprime_muonreco(const edm::ParameterSet& iConfig):
   job->sample = sample_description;
   software_version = "V00-00-00";
   firstEventInRun = false;
+  extractL1prescales = getL1prescales;
+  trigexpressions = expressions;
+
 }
 
 
@@ -140,69 +151,79 @@ void Wprime_muonreco::getGenParticles(const edm::Event & iEvent)
 }
 
 // get trigger info, update MuTrig/genMuTrig
-void Wprime_muonreco::getTriggers(const edm::Event & iEvent)
+void Wprime_muonreco::getTriggers(const edm::Event & iEvent,
+                                  const edm::EventSetup& iSetup)
 {
+
   edm::Handle<edm::TriggerResults> hltresults;
   iEvent.getByLabel(HLTTag_,hltresults);
 
-  It trig = triggerNames.begin();
-  for (unsigned itrig = 0; itrig != N_triggers; ++itrig)
-    { // loop over triggers
-      string trigName = *trig; ++trig;
-      
-      // skip loop for non-muon triggers....
-      // the trigger class name (i.e. Muon) should be release-dependent ???
-      if(trigName.find("Mu") == string::npos)continue; // in 21x and later
-      //      if(trigName.find("HLT1Muon") == string::npos)continue; // in 20x
-      
-      bool accept = hltresults->accept(itrig);
+  // sanity check
+  assert(hltresults->size()==hltConfig.size());
+
+  TClonesArray & thehlt = *(evt->hlt);
+
+  //loop over the triggers of interest for this run
+  for(std::map<unsigned int,std::string>::const_iterator itinfo =
+          m_triggers.begin(), itinfoend = m_triggers.end();
+      itinfo != itinfoend;++itinfo){
+      //get the name of the guy
+      string trigName = itinfo->second; 
+      //did it fire?
+      bool accept = hltresults->accept(itinfo->first);
+      //get l1 and hlt prescales
+      //First decide whether to get L1 prescales too, besides HLT prescales
+      //-1 means error in retrieving this (L1T or HLT) prescale
+      std::pair<int,int> prescales;
+      if (extractL1prescales){
+          const std::pair<int,int> presc(hltConfig.prescaleValues(iEvent,
+                                                                  iSetup,
+                                                                  trigName));
+          prescales.first = presc.first;
+          prescales.second = presc.second;
+      }
+      else{
+          unsigned int hlt_prescale = hltConfig.prescaleValue(iEvent,
+                                                              iSetup,
+                                                              trigName);
+          prescales.first = -1;
+          prescales.second = int(hlt_prescale);
+      }
 
       // this is where we keep statistics (to be printed out at end of job)
       if(accept)
-	{ // extract event counts for trigger efficiencies
-	  tIt it;
-	  if(genmu_acceptance)
-	    {
-	      it = genMuTrig.trigger_count.find(trigName);
-	      if(it != genMuTrig.trigger_count.end())
-		(genMuTrig.trigger_count[trigName])++; 
-	      else
-		genMuTrig.trigger_count[trigName] = 1;
-	    }
-	  it = MuTrig.trigger_count.find(trigName);
-	  if(it != MuTrig.trigger_count.end())
-	    (MuTrig.trigger_count[trigName])++;
-	  else
-	    MuTrig.trigger_count[trigName] = 1;
-	} // extract event counts for trigger efficiencies
+      { // extract event counts for trigger efficiencies
+          tIt it;
+          if(genmu_acceptance)
+          {
+              it = genMuTrig.trigger_count.find(trigName);
+              if(it != genMuTrig.trigger_count.end())
+                  (genMuTrig.trigger_count[trigName])++; 
+              else
+                  genMuTrig.trigger_count[trigName] = 1;
+          }
+          it = MuTrig.trigger_count.find(trigName);
+          if(it != MuTrig.trigger_count.end())
+              (MuTrig.trigger_count[trigName])++;
+          else
+              MuTrig.trigger_count[trigName] = 1;
+      } // extract event counts for trigger efficiencies
 
-      if(trigName == "HLT_L1MuOpen")
-	evt->HLT_L1MuOpen = accept? 1 : 0;
-      else if (trigName == "HLT_L1Mu")
-	evt->HLT_L1Mu = accept? 1 : 0;
-      else if (trigName == "HLT_Mu3")
-	evt->HLT_Mu3 = accept? 1 : 0;
-      else if (trigName == "HLT_Mu5")
-	evt->HLT_Mu5 = accept? 1 : 0;
-      else if (trigName == "HLT_Mu7")
-	evt->HLT_Mu7 = accept? 1 : 0;
-      else if (trigName == "HLT_Mu9")
-	evt->HLT_Mu9 = accept? 1 : 0;
-      else if (trigName == "HLT_Mu11")
-	evt->HLT_Mu11 = accept? 1 : 0;
-      else if (trigName == "HLT_L2Mu5")
-	evt->HLT_L2Mu5 = accept? 1 : 0;
-      else if (trigName == "HLT_L2Mu9")
-	    evt->HLT_L2Mu9 = accept? 1 : 0;
-      else if (trigName == "HLT_L2Mu11")
-	evt->HLT_L2Mu11 = accept? 1 : 0;
-      else if (trigName == "HLT_L2Mu15")
-	evt->HLT_L2Mu15 = accept? 1 : 0;
-      else if (trigName == "HLT_L2Mu25")
-	evt->HLT_L2Mu25 = accept? 1 : 0;
-    } // loop over triggers
+      //set the info in the tree
+      new(thehlt[nhlt]) wprime::TrigInfo();
+      wprime::TrigInfo * wphlt = (wprime::TrigInfo *) thehlt[nhlt];
+      wphlt->fired = accept ? 1 : 0;
+      wphlt->l1pre = prescales.first;
+      wphlt->hltpre = prescales.second;
+      wphlt->name = trigName;
 
+      ++nhlt;
+
+  }//loop over map with trig info
+ 
 }
+
+
 
 // get Particle-Flow MET
 void Wprime_muonreco::getPFMET(const edm::Event & iEvent)
@@ -616,7 +637,7 @@ Wprime_muonreco::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
   ++(run->Nproc_evt);
 
-  getTriggers(iEvent);
+  getTriggers(iEvent,iSetup);
 
   getPVs(iEvent);
 
@@ -664,6 +685,7 @@ void Wprime_muonreco::init_event()
 {
   gen_muons.clear();
   N_muons = N_all_muons = 0;
+  nhlt = 0;
   genmu_acceptance = false;
   met_x = met_y = met = 0.0;
 
@@ -671,8 +693,7 @@ void Wprime_muonreco::init_event()
   evt->w_mc->Clear(); evt->wp_mc->Clear(); 
   evt->mu->Clear(); 
   evt->jet->Clear();evt->pfjet->Clear();
-
-  evt->reset_triggers();
+  evt->hlt->Clear();
  
 }
 
@@ -722,8 +743,8 @@ void Wprime_muonreco::beginRun(edm::Run const & iRun,
 			       edm::EventSetup const & iSetup)
 {
   firstEventInRun = true;
+  
 
-  HLTConfigProvider hltConfig;
   bool changed(true);
   if(! hltConfig.init(iRun, iSetup, HLTTag_.process(), changed))
     {
@@ -731,8 +752,27 @@ void Wprime_muonreco::beginRun(edm::Run const & iRun,
       abort(); // what is the proper way of handling this??? skip run?
     }
  
-  triggerNames = hltConfig.triggerNames();
-  N_triggers = hltConfig.size();
+  //collect the triggers of interest according to config input
+  m_triggers.clear();
+  for (unsigned int i = 0; i < expressions.size(); ++i){
+      
+      const std::vector< std::vector<std::string>::const_iterator > & matches = 
+          edm::regexMatch(hltConfig.triggerNames(), expressions[i]);
+      
+      BOOST_FOREACH(const std::vector<std::string>::const_iterator & match, matches){
+          unsigned int index = hltConfig.triggerIndex(*match);
+          assert(index < hltConfig.size());
+          std::map<unsigned int, std::string>::const_iterator mit = 
+              m_triggers.find(index);
+          if (mit != m_triggers.end()) { 
+              cout<<"Trigger "<<*match
+                  <<" was already considered (your wildcarding is overlapping), don't panic, it's ok, I will skip de double entry..."<<endl;
+              continue;
+          } 
+          m_triggers.insert( std::make_pair(index , *match) );
+      }
+  }//collect triggers of interest
+
   run->HLTmenu = hltConfig.tableName();
 
   run->run_no = iRun.run(); 

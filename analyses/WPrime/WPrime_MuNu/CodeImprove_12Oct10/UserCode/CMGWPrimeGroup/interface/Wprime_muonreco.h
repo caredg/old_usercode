@@ -47,7 +47,7 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
 #include "UserCode/CMGWPrimeGroup/interface/wprimeEvent.h"
-
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 //
 // forward class declaration
 //
@@ -75,6 +75,10 @@ class Wprime_muonreco : public edm::EDAnalyzer
   
   private:
   bool firstEventInRun;
+  bool extractL1prescales;
+  std::vector<std::string> trigexpressions;
+    
+    
   virtual void beginJob() ;
   virtual void beginRun(edm::Run const &, edm::EventSetup const &);
   virtual void endRun(edm::Run const &, edm::EventSetup const &);
@@ -128,8 +132,14 @@ class Wprime_muonreco : public edm::EDAnalyzer
   // whether this is real-data
   bool realData;
 
+  //trigger info
+  const bool getL1prescales;
+  const std::vector<std::string> expressions;
+  std::map<unsigned int, std::string> m_triggers;
+  HLTConfigProvider hltConfig;
+  unsigned nhlt;
   std::vector<std::string> triggerNames;
-  typedef std::vector<std::string>::const_iterator It;
+    //typedef std::vector<std::string>::const_iterator It;
 
   // generator-level muons
   std::vector<reco::GenParticle> gen_muons;
@@ -166,8 +176,7 @@ class Wprime_muonreco : public edm::EDAnalyzer
   const reco::TrackToTrackMap * tevMap_picky;
   const reco::TrackToTrackMap * tevMap_dyt;
 
-  // # of trigger paths in HLT configuration
-  unsigned N_triggers;
+ 
 
   // # of reconstructed muons per event
   unsigned N_muons;
@@ -208,7 +217,7 @@ class Wprime_muonreco : public edm::EDAnalyzer
   void getGenParticles(const edm::Event & iEvent);
 
   // get trigger info, update muTrig/genMuTrig
-  void getTriggers(const edm::Event & iEvent);
+  void getTriggers(const edm::Event & iEvent, const edm::EventSetup& iSetup);
 
   // get primary vertex info
   void getPVs(const edm::Event & iEvent);
