@@ -14,6 +14,7 @@
 #pragma link C++ namespace wprime;
 #pragma link C++ class wprime::JobInfo+;
 #pragma link C++ class wprime::RunInfo+;
+#pragma link C++ class wprime::TrigInfo+;
 #pragma link C++ class wprime::MCParticle+;
 #pragma link C++ class wprime::Track+;
 #pragma link C++ class wprime::Muon+;
