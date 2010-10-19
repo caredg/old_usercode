@@ -29,7 +29,7 @@ cd $RELEASE_VERSION/src
 echo -e  "\n**************************"
 echo -e  " Checking out the code..."
 echo -e  "**************************"
-cvs -Q co -r OCT19-10_V2 -d UserCode UserCode/ecarrera/analyses/WPrime/WPrime_MuNu/CodeImprove_12Oct10/UserCode
+cvs -Q co -r OCT19-10_V3 -d UserCode UserCode/ecarrera/analyses/WPrime/WPrime_MuNu/CodeImprove_12Oct10/UserCode
 # cvs -Q co UserCode/CMGWPrimeGroup
 
 echo -e "\n************************"
