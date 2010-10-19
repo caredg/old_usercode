@@ -87,6 +87,7 @@ class Wprime_muonreco : public edm::EDAnalyzer
   edm::InputTag pvTag_;
   edm::InputTag pvBSTag_;
   edm::InputTag muonTag_;
+  std::string tevMuonLabel_;
   edm::InputTag pfmetTag_;
   edm::InputTag HLTTag_; edm::InputTag L1Tag_;
   //      edm::InputTag isoTag_;

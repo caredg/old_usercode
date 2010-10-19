@@ -43,6 +43,7 @@ Wprime_muonreco::Wprime_muonreco(const edm::ParameterSet& iConfig):
   pvTag_(iConfig.getParameter<edm::InputTag> ("pvTag")),
   pvBSTag_(iConfig.getParameter<edm::InputTag> ("pvBSTag")),
   muonTag_(iConfig.getParameter<edm::InputTag> ("MuonTag")),
+  tevMuonLabel_(iConfig.getParameter<string> ("tevMuonLabel")),
   pfmetTag_(iConfig.getParameter<edm::InputTag> ("pfMetTag")),
   HLTTag_(iConfig.getParameter<edm::InputTag>( "HLTriggerResults" ) ),
   //  isoTag_(iConfig.getParameter<edm::InputTag> ("IsolationTag")),
@@ -361,16 +362,16 @@ void Wprime_muonreco::getTeVMuons(const edm::Event & iEvent)
   edm::Handle<reco::TrackToTrackMap> tevMapH_picky;
   edm::Handle<reco::TrackToTrackMap> tevMapH_dyt;
 
-  iEvent.getByLabel("tevMuons", "default", tevMapH_default);
+  iEvent.getByLabel(tevMuonLabel_, "default", tevMapH_default);
   tevMap_default = tevMapH_default.product();
 
-  iEvent.getByLabel("tevMuons", "firstHit", tevMapH_1stHit);
+  iEvent.getByLabel(tevMuonLabel_, "firstHit", tevMapH_1stHit);
   tevMap_1stHit = tevMapH_1stHit.product();
 
-  iEvent.getByLabel("tevMuons", "picky", tevMapH_picky);
+  iEvent.getByLabel(tevMuonLabel_, "picky", tevMapH_picky);
   tevMap_picky = tevMapH_picky.product();
 
-  iEvent.getByLabel("tevMuons", "dyt", tevMapH_dyt);
+  iEvent.getByLabel(tevMuonLabel_, "dyt", tevMapH_dyt);
   tevMap_dyt = tevMapH_dyt.product();
 }
 
