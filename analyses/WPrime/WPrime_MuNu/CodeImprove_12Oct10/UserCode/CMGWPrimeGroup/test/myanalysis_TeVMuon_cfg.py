@@ -46,8 +46,6 @@ process.StdMu = cms.EDAnalyzer("Wprime_muonreco",
     #this needs a global tag above.
     #By default, the HLT prescales are extracted
     extractL1Prescales = cms.bool(True),
-    #do not do 'HLT_Mu9','HLT_Mu*' as the HLT_Mu9 will be counted twice
-    #and don't know how it it will affect the per event storage                
     triggerConditions = cms.vstring('HLT_L1MuOpen',
                                     'HLT_L1MuOpen_v*',
                                     'HLT_L1Mu',
