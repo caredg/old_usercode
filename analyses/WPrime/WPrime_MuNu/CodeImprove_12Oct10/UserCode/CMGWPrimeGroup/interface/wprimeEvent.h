@@ -104,6 +104,8 @@ class Track : public TObject {
    Float_t dd0_default;
    /// d0 w.r.t. the beamspot
    Float_t d0;
+   /// uncertainty on d0 w.r.t the beamspot 
+   Float_t dd0;
    /// uncertainty on pt
    Float_t dpt;
    /// uncertainty on q/p

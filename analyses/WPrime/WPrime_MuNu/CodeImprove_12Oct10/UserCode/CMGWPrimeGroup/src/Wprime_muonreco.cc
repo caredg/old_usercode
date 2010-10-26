@@ -21,8 +21,14 @@
 #include "DataFormats/Common/interface/View.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 
+<<<<<<< Wprime_muonreco.cc
+#include "DataFormats/MuonReco/interface/MuonMETCorrectionData.h"
+
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+=======
 #include "FWCore/Utilities/interface/RegexMatch.h"
 
+>>>>>>> 1.5
 
 #include "TFile.h"
 #include "TTree.h"
@@ -412,8 +418,12 @@ void Wprime_muonreco::getTracking(wprime::Track & track, const reco::Track & p)
   track.q = p.charge();
   track.chi2 = p.chi2();
   track.d0_default = p.d0();
-  track.d0 = correct_d0(p);
   track.dd0_default = p.d0Error();
+  double d0=track.d0_default;
+  double dd0=track.dd0_default;
+  correct_d0(p,d0,dd0);
+  track.d0 = d0;
+  track.dd0 = dd0;
   track.dpt = p.ptError();
   track.dq_over_p = p.qoverpError();
   track.ndof = int(p.ndof());
@@ -629,7 +639,7 @@ Wprime_muonreco::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   evt->run_no = iEvent.id().run();
   evt->LS_no  = iEvent.id().luminosityBlock();
   
-  getGenParticles(iEvent);
+  //  getGenParticles(iEvent);
   
   ++(MuTrig.Nev); // # of processed events
   if(genmu_acceptance)
@@ -638,7 +648,11 @@ Wprime_muonreco::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
   ++(run->Nproc_evt);
 
+<<<<<<< Wprime_muonreco.cc
+  //  getTriggers(iEvent);
+=======
   getTriggers(iEvent,iSetup);
+>>>>>>> 1.5
 
   getPVs(iEvent);
 
@@ -678,7 +692,7 @@ const string Wprime_muonreco::INVALID_RELEASE = "invalid release number";
 void Wprime_muonreco::init_run(const edm::Event& iEvent)
 {
   realData = iEvent.isRealData();
-  check_trigger(iEvent);
+  //  check_trigger(iEvent);
 }
 
 // initialize event info
@@ -744,7 +758,11 @@ void Wprime_muonreco::beginRun(edm::Run const & iRun,
 			       edm::EventSetup const & iSetup)
 {
   firstEventInRun = true;
+<<<<<<< Wprime_muonreco.cc
+  return;
+=======
   
+>>>>>>> 1.5
 
   bool changed(true);
   if(! hltConfig.init(iRun, iSetup, HLTTag_.process(), changed))
@@ -859,13 +877,12 @@ void Wprime_muonreco::getBeamSpot(const edm::Event & iEvent) {
   }      
 }
 
-double Wprime_muonreco::correct_d0(const reco::Track & track) {
+void Wprime_muonreco::correct_d0(const reco::Track & track,double &d0, double &dd0) {
   reco::BeamSpot beamSpot;
-  beamSpot = *beamSpotHandle;
-  
+  beamSpot = *beamSpotHandle; 
   math::XYZPoint point(beamSpot.x0(),beamSpot.y0(), beamSpot.z0());
-  double d0 = -1.*track.dxy(point);
-  return d0;
+  d0 = -1.*track.dxy(point);
+  dd0 = sqrt( track.d0Error() * track.d0Error() + 0.5* beamSpot.BeamWidthX()*beamSpot.BeamWidthX() + 0.5* beamSpot.BeamWidthY()*beamSpot.BeamWidthY());
 }  
 
 //define this as a plug-in

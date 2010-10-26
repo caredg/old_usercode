@@ -249,5 +249,5 @@ class Wprime_muonreco : public edm::EDAnalyzer
   void doIsolation(reco::MuonRef mu,  wprime::Muon * wpmu);
 
   void getBeamSpot(const edm::Event & iEvent);
-  double correct_d0(const reco::Track & track);
+  void correct_d0(const reco::Track & track,double &d0, double &dd0);
 };

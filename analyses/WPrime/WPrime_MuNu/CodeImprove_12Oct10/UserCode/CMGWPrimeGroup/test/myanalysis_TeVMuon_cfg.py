@@ -14,20 +14,39 @@ process.source = cms.Source("PoolSource",
     # replace input file with one you want to use
  #fileNames = cms.untracked.vstring('file:/home/cleonido/wprime/Summer09MC/W/F866EB68-E39C-DE11-8F01-00145EDD7879.root')
 # fileNames = cms.untracked.vstring('file:/tmp/WprimeMuSkim_46_3_gAm.root')
+<<<<<<< myanalysis_TeVMuon_cfg.py
+                            fileNames = cms.untracked.vstring(
+        '/store/data/Run2010B/Mu/RECO/PromptReco-v2/000/146/511/E0E62F3F-8FC7-DF11-B66F-0019B9F709A4.root'
+)
+=======
                             fileNames = cms.untracked.vstring(
                                # 'file:/localdata/data_repo/wprime_munu/temp/WprimeMuSkim_89_1_Uqm.root',
                                                               'file:/localdata/data_repo/wprime_munu/temp/WprimeMuSkim_9_1_XYU.root')
                             #fileNames = cms.untracked.vstring('file:/localdata/data_repo/wprime_munu/temp/wprime_RECO_1000GeV_2_1_ZXU.root')
 #                            fileNames = cms.untracked.vstring('file:/home/work_jarvis/data_2010B_fix.root')
+>>>>>>> 1.5
 )
 
 # Number of events to process
 process.maxEvents = cms.untracked.PSet(
+<<<<<<< myanalysis_TeVMuon_cfg.py
+    input = cms.untracked.int32(1000)
+#    input = cms.untracked.int32(100)
+=======
     #input = cms.untracked.int32(-1)
     input = cms.untracked.int32(100)
+>>>>>>> 1.5
 )
 
 # configuration for Wprime muon reconstruction
+process.primaryVertexFilter = cms.EDFilter("VertexSelector",
+                                           src = cms.InputTag("offlinePrimaryVertices"),
+                                           cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.Rho <= 2"), # tracksSize() > 3 for the older cut
+                                           filter = cms.bool(True),
+                                           # otherwise it won't filter the events, just produce an empty vertex collection.
+                                           )
+
+
 process.StdMu = cms.EDAnalyzer("Wprime_muonreco",
     # input tags defined here
     pvTag = cms.InputTag("offlinePrimaryVertices"),
@@ -112,5 +131,6 @@ process.TFileService = cms.Service("TFileService",
 #   fileName = cms.string('wprime_1TeV.root')
 )
 
+#process.p = cms.Path(process.primaryVertexFilter*process.StdMu)
 process.p = cms.Path(process.StdMu)
 
