@@ -22,8 +22,7 @@
    usage: %prog [options]
    -p, --path = PATH: Full CASTOR path of the RAW dataset for the run that will be skimmed.
    -o, --out  = OUTDIR: Full CASTOR name for the output file.
-   -z, --zbrate = ZBRATE: Rate in Hz for the ZB trigger, bit 4 in the run
-   -t, --trate = TRATE: Total L1 rate in Hz
+ 
 """
 
 
@@ -242,12 +241,6 @@ def print_config_file(dicOpt,algolist,techlist):
 #######################################################
     path = dicOpt['path']
     out = dicOpt['out']
-    zbrate = dicOpt['zbrate']
-    trate = dicOpt['trate']
-
-    #calculate prescale for ZB path
-    prezb = int(float(trate)/float(zbrate))
-    print "the prescale for ZB is %i" % prezb
     
     #clear config
     os.system("rm -f skimL1Seeds.py")
@@ -413,7 +406,7 @@ process.hltPreHLTIMINGSKIMSmart = cms.EDFilter( "TriggerResultsFilter",
 \ttriggerConditions = cms.vstring(
 """
     )
-    cfg.write("\t\t'HLT_TTT4 / %i',\n" % prezb)
+    
     for seed in algolist:
         cfg.write("\t\t'HLT_T%s',\n" % seed.split("L1_")[1].rstrip())
     for tseed in techlist:
@@ -441,7 +434,6 @@ process.hltPreHLTIMINGSKIMSmart = cms.EDFilter( "TriggerResultsFilter",
                                                      ),
                                      SelectEvents = cms.untracked.PSet(
                                                      SelectEvents = cms.vstring(
-                                                     'HLT_TTT4',
 """
         )
     for seed in algolist:
@@ -510,10 +502,12 @@ process.MessageLogger.categories.append('HLTrigReport')
     str_nsls = "nsls "+path
     mypipe = subprocess.Popen(str_nsls,shell=True,stdout=subprocess.PIPE)
     files = mypipe.communicate()[0].split()
+    #make proper string for the path
+    simplepath = path.split("/castor/cern.ch/cms")[1]
     #print files
     cfg.write("\nprocess.source.fileNames = (\n")
     for k in files:
-        kfile = "\t'rfio:"+path+"/"+k+"',\n"
+        kfile = "\t'"+simplepath+"/"+k+"',\n"
         cfg.write(kfile)
     cfg.write(")\n")
     cfg.write(
@@ -525,7 +519,7 @@ process.MessageLogger.categories.append('HLTrigReport')
 #in case you need to limit the file size to ~4.0Gb to avoid problems
 #Several files will be created if this limit is surpassed
 #The value is in Kb.
-process.hltOutputHLTIMINGSKIM.maxSize = cms.untracked.int32(4000000)
+process.hltOutputHLTIMINGSKIM.maxSize = cms.untracked.int32(3500000)
 """
         )
     
@@ -566,10 +560,7 @@ def get_default_options(option):
 
     dicOpt['path']= str(option.path)
     dicOpt['out']= str(option.out)
-    dicOpt['zbrate']= option.zbrate
-    dicOpt['trate']= option.trate
-
-
+  
     return dicOpt
 
 
