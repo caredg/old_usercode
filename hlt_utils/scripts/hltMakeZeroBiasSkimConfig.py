@@ -14,7 +14,7 @@
 # It also creates a *.csh file that can be used to quickly submit a LSF batch job
 #
 # One can use this script as:
-# python hltMakeZeroBiasSkim.py -p /castor/cern.ch/cms/store/data/Run2010B/MinimumBias/RAW/v1/000/147/219/ -t 33500 -z 34.82 -o /castor/cern.ch/user/e/ecarrera/hlt_debug_skims/forHilton/run147219_L1SkimZB.root
+# python hltMakeZeroBiasSkim.py -p /castor/cern.ch/cms/store/data/Run2010B/MinimumBias/RAW/v1/000/147/219/ -o /castor/cern.ch/user/e/ecarrera/hlt_debug_skims/forHilton/run147219_L1SkimZB.root
 # for example.
 ###########################################################################
 
