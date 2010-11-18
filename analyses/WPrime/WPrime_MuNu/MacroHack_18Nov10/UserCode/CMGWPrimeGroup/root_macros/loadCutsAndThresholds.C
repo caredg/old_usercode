@@ -264,7 +264,7 @@ unsigned NjetAboveThresh(float threshold, float delta_phi,
 // true if HLT conditions are met
 //-------------------------------------------------------------------
 bool PassedHLT(const wprime::Event* ev, const wprime::Muon*, bool [], bool [],
-               bool isW, TH1D* h, TH2D* hh)
+               bool , TH1D* , TH2D* )
 {
   //-------------------------------------------------------------------
 #if debugmemore
@@ -363,7 +363,7 @@ bool MuonPtMtWithinRange(const wprime::Event* ev, const wprime::Muon* mu,
 // true if only one muon with track pT > the threshold
 //-------------------------------------------------------------------
 bool OnlyOneHighTrackPtMuon(const wprime::Event* ev, const wprime::Muon*,
-                            bool [], bool [],bool isW, TH1D* h, TH2D* hh)
+                            bool [], bool [],bool, TH1D*, TH2D*)
 {
 //-------------------------------------------------------------------
 #if debugmemore
@@ -378,7 +378,7 @@ bool OnlyOneHighTrackPtMuon(const wprime::Event* ev, const wprime::Muon*,
 // true if isolation requirements satisfied for muon
 //-------------------------------------------------------------------
 bool IsolatedMuon(const wprime::Event*, const wprime::Muon* the_mu,
-                  bool [], bool [],bool isW, TH1D* h, TH2D* hh)
+                  bool [], bool [],bool, TH1D*, TH2D*)
 {
 //-------------------------------------------------------------------
 #if debugmemore
@@ -470,7 +470,7 @@ bool ExceedMaxNumJetsOpposedToMu(unsigned max_jets_aboveThresh,
 //-------------------------------------------------------------------
 bool GoodQualityMuon(const wprime::Event*, const wprime::Muon* mu,  
                      bool goodQualPt[], bool goodQualMt[],
-                     bool isW, TH1D* h, TH2D* hh)
+                     bool, TH1D*, TH2D*)
 {
 //-------------------------------------------------------------------
 #if debugmemore

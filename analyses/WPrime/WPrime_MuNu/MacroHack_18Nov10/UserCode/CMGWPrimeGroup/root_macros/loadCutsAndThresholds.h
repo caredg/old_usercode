@@ -137,7 +137,7 @@ unsigned NjetAboveThresh(float threshold, float delta_phi,
 // +++++++++++++++++++++++++ Declare cut methods
 // true if HLT conditions are met
 bool PassedHLT(const wprime::Event* ev, const wprime::Muon*, bool [], bool [],
-               bool isW, TH1D* h,TH2D * hh);
+               bool , TH1D* ,TH2D * );
 
 // check if muon is in pt/Mt-range for the different algorithms, fill isThere;
 // always returns true if muon != NULL
@@ -147,11 +147,11 @@ bool MuonPtMtWithinRange(const wprime::Event*, const wprime::Muon* mu,
 
 // true if only one muon with track pT > the threshold
 bool OnlyOneHighTrackPtMuon(const wprime::Event* ev, const wprime::Muon*,
-                            bool [], bool [],bool isW, TH1D* h, TH2D * hh);
+                            bool [], bool [],bool, TH1D*, TH2D *);
 
 // true if isolation requirements satisfied for muon
 bool IsolatedMuon(const wprime::Event*, const wprime::Muon* the_mu, 
-                  bool [], bool [],bool isW, TH1D* h, TH2D * hh);
+                  bool [], bool [],bool, TH1D*, TH2D *);
 
 // true if there is no significant jet activity in event
 // (wrapper for ExceedMaxNumJetsOpposedToMu)
@@ -164,8 +164,8 @@ bool ExceedMaxNumJetsOpposedToMu(unsigned max_jets_aboveThresh, float et_jet_cut
 // check if muon satisfies quality requirements for all tracking algorithms, 
 // fill goodQual; always returns true
 bool GoodQualityMuon(const wprime::Event*, const wprime::Muon* mu, 
-                     bool goodQualPt[], bool goodQualMt[],bool isW, TH1D* h,
-                     TH2D * hh);
+                     bool goodQualPt[], bool goodQualMt[],bool, TH1D*,
+                     TH2D *);
 
 
 // function signature: expects the event, a muon and two arrays w/ length equal to 

@@ -156,12 +156,12 @@ void doPlots(TFile * _file0, int option)
   if(option == 1)
     {
       data->GetXaxis()->SetTitle("Muon p_{T} (GeV/c)");
-      data->GetXaxis()->SetRangeUser(0, 500);
+      data->GetXaxis()->SetRangeUser(25, 500);
     }
   else if(option == 2)
     {
       data->GetXaxis()->SetTitle("M_{T} (GeV/c^{2})");
-      data->GetXaxis()->SetRangeUser(0, 800);
+      data->GetXaxis()->SetRangeUser(50, 800);
     }
 
   if(data->GetMinimum() < 0.00001)data->SetMinimum(0.00001);
