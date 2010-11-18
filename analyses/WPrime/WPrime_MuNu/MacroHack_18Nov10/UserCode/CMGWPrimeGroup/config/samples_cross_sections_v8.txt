@@ -1,0 +1,103 @@
+samplename = data
+description = Muon pt > 25 GeV skim, 34.2 pb^-1
+x-section = 1
+pathname = MuSkim_V161_34.2ipb_132440-149294.root
+Nprod_evt = 1
+
+samplename = W
+description = PYTHIA W->munu without eta cut; using NLO cross-section
+x-section = 10312
+pathname = WPythia.root
+Nprod_evt = 5330940
+
+samplename = Wlowpt
+description = PYTHIA W->munu without eta cut; low pT
+x-section = 10312
+pathname = WPythia15.root
+Nprod_evt = 500000
+
+samplename = QCD
+description = PYTHIA InclusiveMu15 with GEN muon-pt > 15 GeV, pthat > 20 GeV,|eta|<2.5
+x-section = 84679
+pathname = QCD_EnrPtH20_Pt15.root
+Nprod_evt = 29504866
+
+samplename = Z
+description = PYTHIA Z->mumu with M_mumu > 20 GeV; using POWHEG cross-section
+x-section = 1614
+pathname = DY_M20.root
+Nprod_evt = 2289913
+
+samplename = Top
+description = MC@NLO inclusive t-tbar
+x-section = 149.8
+pathname = TTbarNLO36X.root
+Nprod_evt = 546766
+
+samplename = wprime0.6
+description = Wprime->munu, Tune Z2, Mass = 0.6 TeV
+x-section = 6.28
+pathname = wprime_0.6TeV.root
+Nprod_evt = 11000
+
+samplename = wprime0.7
+description = Wprime->munu, Tune Z2, Mass = 0.7 TeV
+x-section = 3.23
+pathname = wprime_0.7TeV.root
+Nprod_evt = 11000
+
+samplename = wprime0.8
+description = Wprime->munu, Tune Z2, Mass = 0.8 TeV
+x-section = 1.838
+pathname = wprime_0.8TeV.root
+Nprod_evt = 11000
+
+samplename = wprime0.9
+description = Wprime->munu, Tune Z2, Mass = 0.9 TeV
+x-section = 1.06
+pathname = wprime_0.9TeV.root
+Nprod_evt = 11000
+
+samplename = wprime1.0
+description = Wprime->munu, Tune Z2, Mass = 1.0 TeV
+x-section = 0.64
+pathname = wprime_1.0TeV.root
+Nprod_evt = 11000
+
+samplename = wprime1.1
+description = Wprime->munu, Tune Z2, Mass = 1.1 TeV
+x-section = 0.397
+pathname = wprime_1.1TeV.root
+Nprod_evt = 11000
+
+samplename = wprime1.2
+description = Wprime->munu, Tune Z2, Mass = 1.2 TeV
+x-section = 0.257
+pathname = wprime_1.2TeV.root
+Nprod_evt = 11000
+
+samplename = wprime1.3
+description = Wprime->munu, Tune Z2, Mass = 1.3 TeV
+x-section = 0.167
+pathname = wprime_1.3TeV.root
+Nprod_evt = 11000
+
+samplename = wprime1.4
+description = Wprime->munu, Tune Z2, Mass = 1.4 TeV
+x-section = 0.106
+pathname = wprime_1.4TeV.root
+Nprod_evt = 11000
+
+samplename = wprime1.5
+description = Wprime->munu, Tune Z2, Mass = 1.5 TeV
+x-section = 0.077
+pathname = wprime_1.5TeV.root
+Nprod_evt = 11000
+
+samplename = wprime2.0
+description = Wprime->munu, Tune Z2, Mass = 2.0 TeV
+x-section = 0.0115
+pathname = wprime_2.0TeV.root
+Nprod_evt = 11000
+
+DONE
