@@ -1,0 +1,73 @@
+Analysis Code for WMuNu Cross-Section Analysis
+==============================================
+
+1 . Signal Templates
+--------------------
+
+Original programs by Antonio Vilela Pereira 
+
+After 22X, modifyed (basically amplied to new met types) and maintained by M. Cepeda
+
+Programs:
+
+A) "Drop-Muon" method --> WDropMuonTemplate.cc
+
+-> To be run (with test/WTemplateDropMuon.py) on a 10pb-1 sample of ZMuMu
+-> Right now it builds the ZMuMu from scratch, a more coherent approach would be to 
+modify it to be run on the outcome of the ZMuMu skims (using ZMuMu Candidates)
+-> Builds a WMuNu dropping one leg of the Z
+-> 3 varieties, a) original   b) boosting to CM   c) using CS angle to account for polarization
+-> Not correcting for neutrinos on eta>2.1 (this causes a small difference in the peak of the MT shape
+when compared to WMuNu reco data)
+-> Still way behind the Random Sampling template when comparing to W MonteCarlo
+-> Needs fixing/cleaning
+
+
+
+B) "Random Sampling" method. Two steps: ZTemplateForSampling.cc and WRandomTemplate.cc
+
+-> To be run in two steps, first one (test/ztemplate.py) over a 10pb-1 data-sample of ZMuMu --> Met 
+distributions vs VPt for sampling
+-> Second step (test/WTemplateSampling.py) over a Monte Carlo high stat sample of Ws, taking this Met 
+distributions from ZMuMu as input, and re-building the W using
+a reconstructed muon (including muon detector effects through ElectroWeakAnalysis/Utilities distortedMuon producer) 
+and a randomly obtained "neutrino" obtained from the Z MET information.
+-> Two varieties: one uses MET distributions as a function of pt, phi; the other as a function of paralell and 
+perpendicular to Z direction
+
+
+2.  Background Templates
+------------------------
+
+Small module to be added after Selection (QCDTemplate.cc, through Background.py)
+
+->Work in progress!! 
+->Once Mt corrections have been calculated (just from a linear fit of the mean of MT distribution vs isolation
+and the width of the MT distribution vs isolation) from a data-like sample --> parameters p,p'
+->Computes the "template" for QCD (inverted isolation, and inverted isolation using the correction described above)
+->Right now the program needs to be told both the corrections used and the kind of met used... 
+->Near future updates will make it use the 2D output of the WMuNuSelector, do the fit to obtain the corrections, and compute 
+the templates in one go :-)...
+
+
+3. FITs 
+-------
+
+Minuit macro that runs over a file containing all the necesary histograms (collected from different programs)
+
+makeInputFileForFit.cpp (run as makeInputFileForFit [-c] corMet, where [-c] asks whether the isolation is combined or not), 
+assembles a histogram file with a) Data input b) templates for signal c) templates for background (and MC truth for QCD 
+and signal for comparisons)
+CrossSectionFIT.cpp (run as root CrossSectionFIT.cpp) does the Fit, and gives some 1D histograms to verify the results
+
+--> In progress!! Fit will be moved to RooFit soon
+--> Framework a little bit ackward still... working on it
+--> ABCD program based in the same input to be added soon
+
+4. MET Resolution studies
+-------------------------
+METAnalyzer.cc is just a very simple analyzer to compare MET with generator level met (in the case of a W Sample, it compares with 
+the neutrino). It is just intended for resolution studies, just a few histos.
+
+
+
