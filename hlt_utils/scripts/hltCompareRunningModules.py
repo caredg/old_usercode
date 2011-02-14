@@ -9,7 +9,8 @@
 #  It looks first at the file with more paths and starts with this, then
 #  looks for the same path in the second file.
 #  If found, it goes module by module checkin if they match,
-#  and if they do, it compares their mean running time.
+#  and if they do, it compares their mean running time and makes a plot
+# for each path that is saved in the current directory.
 #  The script also prints those cases where the discrepancy
 #  is large either by looking at their ratio or their difference. These
 #  thresholds are set in the header of the script.
