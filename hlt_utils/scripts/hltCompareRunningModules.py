@@ -14,6 +14,8 @@
 #  The script also prints those cases where the discrepancy
 #  is large either by looking at their ratio or their difference. These
 #  thresholds are set in the header of the script.
+# The scrip also plots a summary of the ratio of the running time for
+# all paths, giving an idea of the impact of the different conditions.
 #  The naming of the legends follow the names of the files.
 #  One can run the script as
 #  ./hltCompareRunningModules <file1.root> <file2.root> -b >! list.txt
@@ -41,7 +43,7 @@ DEBUG = False
 THRATIO = 10.0
 #threshold for the difference of the running modules, used
 #when one instance is zero
-THDIFF = 200
+THDIFF = 100
 
 gROOT.SetStyle("Plain")
 gStyle.SetOptStat(0)
@@ -112,20 +114,25 @@ def plot_results(repo1,repo2,file1,file2):
     #start with the one with more paths
     len1 = len(repo1)
     len2 = len(repo2)
+    plen = 0
     if len1 > len2:
         container1 = repo1
         container2 = repo2
+        plen = len1
         fname1 = file1.strip(".root")
         fname2 = file2.strip(".root")
     else:
         container1 = repo2
         container2 = repo1
+        plen =len2
         fname1 = file2.strip(".root")
         fname2 = file1.strip(".root")
 
     #start plotting path by path
     mycountp = 0
+    hp = TH1F("hp","Ratio of Path's running time",plen,0,plen)
     for p in container1:
+        #print "\t\t\t %s" % p
         if DEBUG:
             if mycountp > 10:
                 break
@@ -181,16 +188,22 @@ def plot_results(repo1,repo2,file1,file2):
                 if theModMean > 0 and modules1[m] > 0:
                     ratiomod = theModMean/modules1[m]
                     diffmod = abs(modules1[m] - theModMean)
-                    if ratiomod > 0 and (ratiomod >= THRATIO or ratiomod <= (1/THRATIO)):
+                    if (ratiomod > 0 and (ratiomod >= THRATIO or ratiomod <= (1/THRATIO))) or diffmod > THDIFF:
                         print "Path %s, module %s: mean1 = %s ms, mean2 = %s ms, ratio = %s, diff = %s ms" % (p,m,modules1[m],theModMean,str(ratiomod),str(diffmod))
                 else:
                     ratiomod = 0.
                     diffmod = abs(modules1[m] - theModMean)
                     if diffmod > 0 and diffmod > THDIFF:
                         print "Path %s, module %s: mean1 = %s ms, mean2 = %s ms, ratio = %s, diff = %s ms" % (p,m,modules1[m],theModMean,str(ratiomod),str(diffmod))
-                
+        #fill the total running path time ratio histo
+        ratiopaths = h2.Integral()/h1.Integral()
+        #print " "
+        #print p
+        #print ratiopaths
+        hp.Fill(p,ratiopaths)
+        
         #draw the two histos and save the plot
-        can = TCanvas("can","",1500,600);
+        can = TCanvas("can","",1800,800);
         can.cd();
         h1.Draw();
         h1.SetLineWidth(2)
@@ -200,13 +213,15 @@ def plot_results(repo1,repo2,file1,file2):
         h2.SetLineColor(2);
         h2.Draw("same")
         h2.SetLineWidth(2)
-        can.SetBottomMargin(0.5)
+        can.SetBottomMargin(0.55)
         can.SetLogy()
+        can.SetGridx()
+        can.SetGridy()
         #lg = TLegend(0.59, 0.67, 0.89, 0.89);
         lg = TLegend(0.79, 0.89, 1.0, 0.99);
         lg.AddEntry(h1,ffname1,"L");
         lg.AddEntry(h2,ffname2,"L");
-        lg.SetTextSize(0.03);
+        lg.SetTextSize(0.025);
         lg.SetBorderSize(0);
         lg.SetFillColor(0);
         lg.Draw("same");
@@ -215,6 +230,18 @@ def plot_results(repo1,repo2,file1,file2):
         del can
         
         mycountp+=1
+
+    #plot the path summary
+    can2 = TCanvas("can2","",1500,600)
+    can2.cd()
+    hp.Draw()
+    hp.SetLineWidth(2)
+    can2.SetBottomMargin(0.5)
+    can2.SetGridx()
+    can2.SetGridy()
+    hp.GetXaxis().SetLabelSize(0.03)
+    can2.Print("pathRunningTimeRatio.gif")
+    
         
 ###############################################################
 def main():
