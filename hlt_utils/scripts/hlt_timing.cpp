@@ -48,7 +48,7 @@ TFile* f = new TFile("outfile.root","READ");
 TH1F* hne = (TH1F*)f->Get("totalTime");
 int totalNevents = hne->GetEntries();
 struct HLTData mysort; //to nicely sort the data
-bool debugme = false;
+bool debugme = true;
 
 //Function to split a string into two pieces
 //-----------------------------------------------------------------------------
@@ -140,7 +140,7 @@ void save_histogram(TH2F* h)
 //Loop over keys in file and return vector of histograms found
 //by a string wildcard
 //---------------------------------------------------------------------------
-vector<TH1*> get_vector_of_histos (vector<string> wildcard )
+vector<TH1*> get_vector_of_histos (const string& wildcard )
 {
 //---------------------------------------------------------------------------
     if (debugme) cout<<"Getting vector from file"<<endl;
@@ -153,10 +153,8 @@ vector<TH1*> get_vector_of_histos (vector<string> wildcard )
         if (obj->IsA()->InheritsFrom("TH1")) {
             h = (TH1*)obj;
             TString histName = h->GetName();
-            for(int i=0;i<wildcard.size();++i){
-                if (!histName.Contains(wildcard[i].c_str())) continue;
-                histos_vector.push_back(h);
-            }
+            if (!histName.Contains(wildcard.c_str())) continue;
+            histos_vector.push_back(h);
         }
     }//---while key
 
@@ -258,122 +256,79 @@ TH2F* fill22_hlt_histogram(const vector<HLTData>& hlt_vector)
 
 //Check path times
 //---------------------------------------------------------------------------
-void check_pathtimes (Double_t _threshold, string incOrnormalTime)
+void check_pathtimes (Double_t _threshold)
 {
 //---------------------------------------------------------------------------
+    if (debugme) cout<<"Checking path times"<<endl;
     Double_t threshold = _threshold;//in miliseconds
-    cout<<"\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$Total number of events: "<<totalNevents<<endl;
-    cout<<"Paths with "<<incOrnormalTime<<" more than "<<threshold<<" msec per event:\n"<<endl;
     vector<HLTData> pathtime_vector; 
-    vector<string> mywildcards;
-    mywildcards.push_back(incOrnormalTime);
     TH1* h;
-    vector<TH1*> pathtime_histvect = get_vector_of_histos(mywildcards);
-    for(vector<TH1*>::const_iterator vit = pathtime_histvect.begin(),
-            vitend = pathtime_histvect.end();vit!=vitend;++vit){
-        h = (*vit);
-        //if (debugme) cout<<h<<endl;
-        string longName = h->GetName();
-        string shortName = longName.erase(0,9);
-        Int_t nbins = h->GetNbinsX();
-        Double_t binwidth =  h->GetBinWidth(1);
-        //cout<<"binwidth = "<<binwidth<<endl;
-        assert(binwidth>0);
-        Int_t skipbins = Int_t(ceil(threshold/binwidth))+1;
-        //cout<<"skipbins = "<<skipbins<<endl;
-        Double_t highEntries = h->Integral(skipbins,nbins);
-        //Double_t path_discriminator = 100*highEntries/histEntries;
-        Double_t path_discriminator = highEntries;
-      if(path_discriminator>0){
-          cout<<"pathName = "<<longName<<"\tnumEvents = "<<path_discriminator<<endl;
-      }
-      pathtime_vector.push_back(HLTData(shortName,"",path_discriminator));
-    }
-    
-    sort_hlt_vector(pathtime_vector);
-    TH1F* pathtime_hist = fill_hlt_histogram(pathtime_vector);
-    pathtime_hist->SetTitle(Form("Num events (out of %i) per path that took > %0.0f ms to run",threshold,totalNevents));
-    save_histogram(pathtime_hist);
+    vector<TH1*> pathtime_histvect = get_vector_of_histos("pathTime_");
+     for(vector<TH1*>::const_iterator vit = pathtime_histvect.begin(),
+             vitend = pathtime_histvect.end();vit!=vitend;++vit){
+         h = (*vit);
+         //if (debugme) cout<<h<<endl;
+         string shortName = h->GetName();
+         shortName = shortName.erase(0,9);
+         Int_t nbins = h->GetNbinsX();
+         Double_t binwidth =  h->GetBinWidth(1);
+         assert(binwidth>0);
+         Int_t skipbins = Int_t(ceil(threshold/binwidth));
+         Double_t highEntries = h->Integral(skipbins,nbins);
+         //Double_t path_discriminator = 100*highEntries/histEntries;
+         Double_t path_discriminator = highEntries;
+         pathtime_vector.push_back(HLTData(shortName,"",path_discriminator));
+     }
+
+     sort_hlt_vector(pathtime_vector);
+     TH1F* pathtime_hist = fill_hlt_histogram(pathtime_vector);
+     pathtime_hist->SetTitle(Form("Num events (out of %i) per path that took > %0.0f ms to run",threshold,totalNevents));
+     save_histogram(pathtime_hist);
     
     
     return;
 }//checkhisto
 
-
-
-
-//Check average path time plot
-//---------------------------------------------------------------------------
-void check_average_pathtime (Double_t _threshold)
-{
-//---------------------------------------------------------------------------
-    Double_t threshold = _threshold;//in miliseconds
-    cout<<"\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$Total number of events: "<<totalNevents<<endl;
-    cout<<"Paths with average time more than "<<threshold<<" msec:\n"<<endl;
-    vector<HLTData> averagepath_vector; 
-    vector<string> mywildcards;
-    mywildcards.push_back("pathTimeSummary");
-    TH1* h;
-    vector<TH1*> pathtime_histvect = get_vector_of_histos(mywildcards);
-    for(vector<TH1*>::const_iterator vit = pathtime_histvect.begin(),
-            vitend = pathtime_histvect.end();vit!=vitend;++vit){
-        h = (*vit);
-        Int_t nbins = h->GetNbinsX();
-        Double_t binwidth =  h->GetBinWidth(1);
-        for (int bin=1 ; bin<=nbins ; ++bin){
-            Double_t avpathtime = h->GetBinContent(bin);
-            string pathlabel = h->GetXaxis()->GetBinLabel(bin);
-            if (avpathtime>threshold){
-                cout<<"PathName = "<<pathlabel<<"\tAverageTime = "<<avpathtime<<" msec"<<endl;
-                averagepath_vector.push_back(HLTData(pathlabel,"",avpathtime));
-            }
-        }
-    }
-    
-    //to do, plot averagepath_vector
-    
-    return;
-}//checkhisto
 
 
 
 
 //Check path times
 //---------------------------------------------------------------------------
-// void check_module_running_time (Double_t _threshold)
-// {
-// //---------------------------------------------------------------------------
-//     if (debugme) cout<<"Checking module times"<<endl;
-//     Double_t threshold = _threshold;//in miliseconds
-//     vector<HLTData> moduletime_vector; 
-//     TH1* h;
-//     vector<TH1*> moduletime_histvect = get_vector_of_histos("moduleInPathScaledTimeSummary_");
-//      for(vector<TH1*>::const_iterator vit = moduletime_histvect.begin(),
-//              vitend = moduletime_histvect.end();vit!=vitend;++vit){
-//          h = (*vit);
-//          if (h->GetMaximum()<_threshold) continue;
-//          string pathName = h->GetName();
-//          pathName = pathName.erase(0,30);
-//          Int_t nbins = h->GetNbinsX();
-//          Double_t binwidth =  h->GetBinWidth(1);
+void check_module_running_time (Double_t _threshold)
+{
+//---------------------------------------------------------------------------
+    if (debugme) cout<<"Checking module times"<<endl;
+    Double_t threshold = _threshold;//in miliseconds
+    vector<HLTData> moduletime_vector; 
+    TH1* h;
+    vector<TH1*> moduletime_histvect = get_vector_of_histos("moduleInPathScaledTimeSummary_");
+     for(vector<TH1*>::const_iterator vit = moduletime_histvect.begin(),
+             vitend = moduletime_histvect.end();vit!=vitend;++vit){
+         h = (*vit);
+         if (h->GetMaximum()<_threshold) continue;
+         string pathName = h->GetName();
+         pathName = pathName.erase(0,30);
+         Int_t nbins = h->GetNbinsX();
+         Double_t binwidth =  h->GetBinWidth(1);
          
-//          for (int bin=1 ; bin<=nbins ; ++bin){
-//              Double_t moduletime = h->GetBinContent(bin);
-//              if (moduletime<_threshold) continue;
-//              string modulelabel = h->GetXaxis()->GetBinLabel(bin);
-//              moduletime_vector.push_back(HLTData(modulelabel,pathName,
-//                                                  moduletime));
-//          }
-//      }
+         for (int bin=1 ; bin<=nbins ; ++bin){
+             Double_t moduletime = h->GetBinContent(bin);
+             if (moduletime<_threshold) continue;
+             string modulelabel = h->GetXaxis()->GetBinLabel(bin);
+             moduletime_vector.push_back(HLTData(modulelabel,pathName,
+                                                 moduletime));
+         }
+     }
 
-//      sort_hlt_vector(moduletime_vector);
-//      TH2F* moduletime_hist = fill2_hlt_histogram(moduletime_vector);
-//      moduletime_hist->SetTitle(Form("Average running time per module with time_threshold>%0.0f ms.  Third dimension shows number of ocurrences.",threshold));
-//      save_histogram(moduletime_hist);
+     sort_hlt_vector(moduletime_vector);
+     TH2F* moduletime_hist = fill2_hlt_histogram(moduletime_vector);
+     moduletime_hist->SetTitle(Form("Average running time per module with time_threshold>%0.0f ms.  Third dimension shows number of ocurrences.",threshold));
+     save_histogram(moduletime_hist);
     
     
-//     return;
-// }//checkhisto
+    return;
+}//checkhisto
 
 
 
@@ -382,39 +337,30 @@ void check_average_pathtime (Double_t _threshold)
 void check_module_per_path_running_time (Double_t _threshold)
 {
 //---------------------------------------------------------------------------
-
+    if (debugme) cout<<"Checking modules per path"<<endl;
     Double_t threshold = _threshold;//in miliseconds
-    cout<<"\n$$$$$$$$$$$$$$$$$$$$$$$$Total number of events: "<<totalNevents<<endl;
-    cout<<"Modules (in corresponding paths) that took more than "<<threshold<<" msec to run per event:"<<endl;
-    vector<HLTData> modulepath_time_vector;
-    vector<string> mywildcards;
-    mywildcards.push_back("moduleInPathScaledTime_HLT_");
-    mywildcards.push_back("moduleInPathScaledTime_AlCa_");
+    vector<HLTData> modulepath_time_vector; 
     TH1* h;
-    vector<TH1*> modulepath_time_histvect = get_vector_of_histos(mywildcards);
+    vector<TH1*> modulepath_time_histvect = get_vector_of_histos("moduleInPathScaledTime_HLT_");
      for(vector<TH1*>::const_iterator vit = modulepath_time_histvect.begin(),
              vitend = modulepath_time_histvect.end();vit!=vitend;++vit){
          h = (*vit);
-         string longName = h->GetName();
-         string shortName = longName.erase(0,27);
+         
+         string shortName = h->GetName();
+         shortName = shortName.erase(0,27);
          string pathName = "";
          string modName = "";
          splitstring(shortName,"_hlt",pathName,modName);
          modName = "hlt"+modName;
-         //cout<<h->GetName()<<"\t\t"<<pathName<<"\t"<<modName<<endl;
+         cout<<h->GetName()<<"\t\t"<<pathName<<"\t"<<modName<<endl;
          Int_t nbins = h->GetNbinsX();
          Double_t binwidth =  h->GetBinWidth(1);
          assert(binwidth>0);
-         Int_t skipbins = Int_t(ceil(threshold/binwidth))+1;
+         Int_t skipbins = Int_t(ceil(threshold/binwidth));
          Double_t highEntries = h->Integral(skipbins,nbins);
          //Double_t path_discriminator = 100*highEntries/histEntries;
          Double_t time_discriminator = highEntries;
-         if(time_discriminator>0){
-             cout<<"shortPathName = "<<pathName<<"\tmodName = "<<modName<<"\tnumEvents = "<<time_discriminator<<endl;
-         }
          modulepath_time_vector.push_back(HLTData(pathName,modName,time_discriminator));
-         
-         
          
      }
      
@@ -434,27 +380,17 @@ int main()
 {
 //-----------------------------------------------------------------------------
 
-    //look at pathtimes (could be incPathTime_ or just pathTime_)
-    //for the moment, if you need plots, don't do incPathTime and pathTime
-    //at the same time.  Printing txt file is fine.
-
-    //check_pathtimes(40,"pathTime_");
-    check_average_pathtime(10);
-    check_average_pathtime(40);
-    check_pathtimes(100,"pathTime_");
-    check_pathtimes(5,"incPathTime_");
-    check_module_per_path_running_time(40);
-    check_module_per_path_running_time(100);
-    //check_pathtimes(10,"incPathTime_");
-    //check_pathtimes(150);
-    //check_pathtimes(200);
-    //check_module_running_time(10);
-    //check_module_running_time(40);
+    //look at pathtimes
+    check_pathtimes(50);
+    check_pathtimes(100);
+    check_pathtimes(150);
+    check_pathtimes(200);
+    //check_module_running_time(0);
+    //check_module_running_time(20);
     //check_module_per_path_running_time(20);
     //check_module_per_path_running_time(30);
-
-
-
+    check_module_per_path_running_time(40);
+    
     
     
     return 0;

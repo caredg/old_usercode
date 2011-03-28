@@ -13,7 +13,7 @@ from time import gmtime, localtime, strftime
 
 
 #just a debug flag
-DEBUG = True
+DEBUG = False
 
 
 
@@ -114,21 +114,13 @@ def parse_HLTReport(inflist):
     for line in lin.readlines():
         fin = open(line.rstrip(),"r")
         for fline in fin.readlines():
-#            aux = fline.find('HLT-Report')
-            aux = fline.find('TrigReport')
-            if (aux == 0):
-                saux3 = fline.find('Events total')
-                if (saux3!= -1):
-                    print "Total Events = "+fline.split()[4]
-                saux = fline.find('Modules in Path') 
-                if( saux != -1):
-                    break
+            aux = fline.find('HLT-Report')
             flinestuff = fline.split()
             if (aux == 0 and flinestuff[1].isdigit()):
-                if not flinestuff[7] in allPaths:
-                    allPaths[flinestuff[7]] = int(flinestuff[4])
+                if not flinestuff[5] in allPaths:
+                    allPaths[flinestuff[5]] = int(flinestuff[3])
                 else:
-                    allPaths[flinestuff[7]]+=int(flinestuff[4])
+                    allPaths[flinestuff[5]]+=int(flinestuff[3])
 
     # sort keys for loop
     Ks = allPaths.keys()
