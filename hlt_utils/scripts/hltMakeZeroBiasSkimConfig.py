@@ -151,12 +151,14 @@ process.e = cms.EndPath(process.l1GtTrigReport)
     os.system("cmsRun auxfile.py >& l1dump.txt")
     #!!!!!!!!!!!!!!Temporary fixes for seeds that have different names
     #in the output file, don't know why
-    #fix the Jet* seeds.  They need the "U" for uncorrected
-    os.system("sed -i -e 's#Jet\([0-9]*\)#Jet\\1U#g' l1dump.txt")
-    #get rid of the QE8 in the L1_Mu* seeds
+        #get rid of the QE8 in the L1_Mu* seeds
     os.system("sed -i -e 's#Mu\([0-9]*\)QE8#Mu\\1#g' l1dump.txt")
     #get rid of the _Ext extension
     os.system("sed -i -e 's#_Ext##g' l1dump.txt")
+    #get rid of the _Eta1p39 extension
+    os.system("sed -i -e 's#_Eta1p39##g' l1dump.txt")
+    #get rid of the _v1 extension
+    os.system("sed -i -e 's#_v1##g' l1dump.txt")
     #clean up
     os.system("rm -f auxfile.py")
 
